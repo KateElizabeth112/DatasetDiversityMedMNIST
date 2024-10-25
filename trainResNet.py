@@ -47,7 +47,7 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, batch_size, size
 
     data_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[.5], std=[.5])])
 
-    train_dataset = Subset(DataClass(split='train', transform=data_transform, download=download, as_rgb=as_rgb, size=size), subset_idx)
+    train_dataset = Subset(DataClass(split='train', transform=data_transform, download=download, as_rgb=as_rgb, size=size), subset_idx), np.arange(0, 100)
     val_dataset = DataClass(split='val', transform=data_transform, download=download, as_rgb=as_rgb, size=size)
     test_dataset = DataClass(split='test', transform=data_transform, download=download, as_rgb=as_rgb, size=size)
 
