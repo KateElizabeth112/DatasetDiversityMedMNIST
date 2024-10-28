@@ -3,17 +3,18 @@ import argparse
 import mlflow
 import os
 import torchvision.transforms as transforms
-from trainers import Trainer, TrainerParams, Inference
-from autoencoder2D import ConvAutoencoder
-from classifier import ImageClassifier
+#from trainers import Trainer, TrainerParams, Inference
+#from autoencoder2D import ConvAutoencoder
+#from classifier import ImageClassifier
 from torch.utils.data import Subset
 from torchvision import datasets
-from diversityScore import DiversityScore
+#from diversityScore import DiversityScore
 import pickle as pkl
 from datasetUtils import generateSubsetIndex, generateSubsetIndexDiverse, RotationTransform
-import plotting
+#import plotting
 import numpy as np
 from medMNISTDataset import MedNISTDataset
+from trainResNet import runTraining
 
 # Set up the argument parser
 parser = argparse.ArgumentParser(description="Calculate the generalisation ability and diversity scores for a dataset")
@@ -46,7 +47,7 @@ transform_emnist = transforms.Compose([transforms.ToTensor(), RotationTransform(
 mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
 
 # Create a new MLflow Experiment
-mlflow.set_experiment(experiment_name)
+#mlflow.set_experiment(experiment_name)
 
 
 def getDataSubsets(data, n_samples, diversity="high"):
@@ -88,19 +89,23 @@ def main():
         print("Warning: test data has {0} samples not {1}".format(len(test_data), number_test_samples_per_cat * 10))
 
     # First randomly select a subset so that we don't have to compute a massive similarity matrix
+    n_train_samples = len(train_data)
     idx_train = generateSubsetIndex(train_data, "all", min(params["n_samples"] * 5, len(train_data)), params["random_seed"])
-    idx_valid = generateSubsetIndex(valid_data, "all", min(number_test_samples_per_cat * 10, len(valid_data)), params["random_seed"])
-    idx_test = generateSubsetIndex(test_data, "all", min(number_test_samples_per_cat * 10, len(test_data)), params["random_seed"])
 
     train_data = Subset(train_data, idx_train)
-    valid_data = Subset(valid_data, idx_valid)
-    test_data = Subset(test_data, idx_test)
+
+    # keep track of the original train data indices in the new subset so we can apply the selection to a new dataset
+    # in one go
+    idx_train_orig = np.arange(0, n_train_samples)
+    idx_train_mod = idx_train_orig[idx_train]
 
     # then choose maximally or minimally diverse samples from the training subset
-    #train_data = getDataSubsets(train_data, params["n_samples"], diversity=params["diversity"])
+    subset_idx = generateSubsetIndexDiverse(train_data, "all", params["n_samples"], diversity=params["diversity"])
 
+    idx_train_final = idx_train_mod[subset_idx]
     print("Finished sampling data.")
 
+    """
     # load the AE model that we will use to embed the data
     model_ae = ConvAutoencoder(save_path=os.path.join(models_path, ae_model_name))
 
@@ -109,18 +114,28 @@ def main():
 
     # diversity score all datasets
     ds_train = DiversityScore(train_data, trainer_params, model_ae)
-    ds_test = DiversityScore(test_data, trainer_params, model_ae)
-    ds_valid = DiversityScore(valid_data, trainer_params, model_ae)
+    #ds_test = DiversityScore(test_data, trainer_params, model_ae)
+    #ds_valid = DiversityScore(valid_data, trainer_params, model_ae)
 
     train_scores = ds_train.scoreDiversity()
-    test_scores = ds_test.scoreDiversity()
-    valid_scores = ds_valid.scoreDiversity()
-
+    #test_scores = ds_test.scoreDiversity()
+    #valid_scores = ds_valid.scoreDiversity()
+    """
     print("Training ResNet for classification.")
 
-    from trainResNet import runTraining
-
-    runTraining("pneumoniamnist", './output', 3, 128, 28, True, 'resnet18', True, True, None, 'model1')
+    runTraining(idx_train_final,
+                'pneumoniamnist',
+                './output',
+                3,
+                '0',
+                50,
+                28,
+                True,
+                'resnet18',
+                True,
+                True,
+                None,
+                'model1')
 
     print("Finished experiment.")
 
