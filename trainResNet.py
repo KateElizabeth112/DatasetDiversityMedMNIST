@@ -166,10 +166,14 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_s
     log = '%s\n' % (data_flag) + train_log + val_log + test_log
     print(log)
 
-    # with open(os.path.join(output_root, '%s_log.txt' % (data_flag)), 'a') as f:
-    #    f.write(log)
+    metrics = {"train_AUC": train_metrics[1],
+               "train_acc": train_metrics[2],
+               "val_AUC": val_metrics[1],
+               "val_acc": val_metrics[2],
+               "test_AUC": test_metrics[1],
+               "test_acc": test_metrics[2]}
 
-    # writer.close()
+    return metrics
 
 
 def train(model, train_loader, task, criterion, optimizer, device):
@@ -297,5 +301,16 @@ if __name__ == '__main__':
     run = args.run
     subset_idx = np.arange(0, 1000)
 
-    runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_size, size, download, model_flag, resize, as_rgb,
-         model_path, run)
+    metrics = runTraining(subset_idx,
+                          data_flag,
+                          output_root,
+                          num_epochs,
+                          gpu_ids,
+                          batch_size,
+                          size,
+                          download,
+                          model_flag,
+                          resize,
+                          as_rgb,
+                          model_path,
+                          run)

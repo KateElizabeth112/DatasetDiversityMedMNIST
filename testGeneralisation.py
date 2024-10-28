@@ -3,24 +3,26 @@ import argparse
 import mlflow
 import os
 import torchvision.transforms as transforms
-#from trainers import Trainer, TrainerParams, Inference
-#from autoencoder2D import ConvAutoencoder
-#from classifier import ImageClassifier
+# from trainers import Trainer, TrainerParams, Inference
+# from autoencoder2D import ConvAutoencoder
+# from classifier import ImageClassifier
 from torch.utils.data import Subset
 from torchvision import datasets
-#from diversityScore import DiversityScore
+# from diversityScore import DiversityScore
 import pickle as pkl
 from datasetUtils import generateSubsetIndex, generateSubsetIndexDiverse, RotationTransform
-#import plotting
+# import plotting
 import numpy as np
 from medMNISTDataset import MedNISTDataset
 from trainResNet import runTraining
 
 # Set up the argument parser
 parser = argparse.ArgumentParser(description="Calculate the generalisation ability and diversity scores for a dataset")
-parser.add_argument("-e", "--experiment", type=str, help="Name of the experiment.", default="GeneralisationMinMaxDiversity")
+parser.add_argument("-e", "--experiment", type=str, help="Name of the experiment.",
+                    default="GeneralisationMinMaxDiversity")
 parser.add_argument("-p", "--params_file", type=str, help="Name of params file.", default="test_params.pkl")
-parser.add_argument("-r", "--root_dir", type=str, help="Root directory where the code and data are located", default="/Users/katecevora/Documents/PhD")
+parser.add_argument("-r", "--root_dir", type=str, help="Root directory where the code and data are located",
+                    default="/Users/katecevora/Documents/PhD")
 
 args = parser.parse_args()
 
@@ -29,7 +31,8 @@ code_dir = os.path.join(root_dir, "code/AutoencoderMNIST")
 data_dir = os.path.join(root_dir, "data")
 experiment_name = args.experiment
 
-assert experiment_name in ["Generalisation_Fixed_Entropy", "GeneralisationMinMaxDiversity"], "Experiment name is not recognised"
+assert experiment_name in ["Generalisation_Fixed_Entropy",
+                           "GeneralisationMinMaxDiversity"], "Experiment name is not recognised"
 
 params_file_path = os.path.join(code_dir, "params", experiment_name, args.params_file)
 models_path = os.path.join(code_dir, "models")
@@ -47,13 +50,14 @@ transform_emnist = transforms.Compose([transforms.ToTensor(), RotationTransform(
 mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
 
 # Create a new MLflow Experiment
-#mlflow.set_experiment(experiment_name)
+mlflow.set_experiment(experiment_name)
 
 
 def getDataSubsets(data, n_samples, diversity="high"):
     subset_idx = generateSubsetIndexDiverse(data, "all", n_samples, diversity=diversity)
 
     return Subset(data, subset_idx)
+
 
 def main():
     # open a params file
@@ -84,13 +88,15 @@ def main():
     if len(train_data) < params["n_samples"] * 5:
         print("Warning: train data has {0} samples not {1}".format(len(train_data), params["n_samples"] * 5))
     if len(valid_data) < number_test_samples_per_cat * 10:
-        print("Warning: validation data has {0} samples not {1}".format(len(valid_data), number_test_samples_per_cat * 10))
+        print("Warning: validation data has {0} samples not {1}".format(len(valid_data),
+                                                                        number_test_samples_per_cat * 10))
     if len(test_data) < number_test_samples_per_cat * 10:
         print("Warning: test data has {0} samples not {1}".format(len(test_data), number_test_samples_per_cat * 10))
 
     # First randomly select a subset so that we don't have to compute a massive similarity matrix
     n_train_samples = len(train_data)
-    idx_train = generateSubsetIndex(train_data, "all", min(params["n_samples"] * 5, len(train_data)), params["random_seed"])
+    idx_train = generateSubsetIndex(train_data, "all", min(params["n_samples"] * 5, len(train_data)),
+                                    params["random_seed"])
 
     train_data = Subset(train_data, idx_train)
 
@@ -123,19 +129,19 @@ def main():
     """
     print("Training ResNet for classification.")
 
-    runTraining(idx_train_final,
-                'pneumoniamnist',
-                './output',
-                3,
-                '0',
-                50,
-                28,
-                True,
-                'resnet18',
-                True,
-                True,
-                None,
-                'model1')
+    metrics = runTraining(idx_train_final,
+                          'pneumoniamnist',
+                          './output',
+                          3,
+                          '0',
+                          50,
+                          28,
+                          True,
+                          'resnet18',
+                          True,
+                          True,
+                          None,
+                          'model1')
 
     print("Finished experiment.")
 
@@ -159,7 +165,7 @@ def main():
         mlflow.log_metric("valid_accuracy", valid_accuracy)
 
         # log the loss plot for the classification model
-        #mlflow.log_artifact(loss_plot_save_path)
+        # mlflow.log_artifact(loss_plot_save_path)
 
     print("Finished mlflow logging.")
 
