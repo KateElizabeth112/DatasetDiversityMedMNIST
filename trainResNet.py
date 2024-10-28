@@ -20,8 +20,7 @@ from torchvision.models import resnet18, resnet50
 from tqdm import trange
 
 
-def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_size, size, download, model_flag, resize, as_rgb,
-         model_path, run):
+def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_size, size, download, model_flag, resize, as_rgb):
     lr = 0.001
     gamma = 0.1
     milestones = [0.5 * num_epochs, 0.75 * num_epochs]
@@ -92,6 +91,7 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_s
     else:
         criterion = nn.CrossEntropyLoss()
 
+    """
     if model_path is not None:
         model.load_state_dict(torch.load(model_path, map_location=device)['net'], strict=True)
         train_metrics = test(model, train_evaluator, train_loader_at_eval, task, criterion, device, run, output_root)
@@ -101,6 +101,7 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_s
         print('train  auc: %.5f  acc: %.5f\n' % (train_metrics[1], train_metrics[2]) + \
               'val  auc: %.5f  acc: %.5f\n' % (val_metrics[1], val_metrics[2]) + \
               'test  auc: %.5f  acc: %.5f\n' % (test_metrics[1], test_metrics[2]))
+    """
 
     if num_epochs == 0:
         return
@@ -124,9 +125,9 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_s
     for epoch in trange(num_epochs):
         train_loss = train(model, train_loader, task, criterion, optimizer, device)
 
-        train_metrics = test(model, train_evaluator, train_loader_at_eval, task, criterion, device, run)
-        val_metrics = test(model, val_evaluator, val_loader, task, criterion, device, run)
-        test_metrics = test(model, test_evaluator, test_loader, task, criterion, device, run)
+        train_metrics = test(model, train_evaluator, train_loader_at_eval, task, criterion, device)
+        val_metrics = test(model, val_evaluator, val_loader, task, criterion, device)
+        test_metrics = test(model, test_evaluator, test_loader, task, criterion, device)
 
         scheduler.step()
 
@@ -136,9 +137,6 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_s
             log_dict[key] = val_metrics[i]
         for i, key in enumerate(test_logs):
             log_dict[key] = test_metrics[i]
-
-        # for key, value in log_dict.items():
-        #    writer.add_scalar(key, value, epoch)
 
         cur_auc = val_metrics[1]
         if cur_auc > best_auc:
@@ -155,9 +153,9 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_s
     path = os.path.join(output_root, 'best_model.pth')
     torch.save(state, path)
 
-    train_metrics = test(best_model, train_evaluator, train_loader_at_eval, task, criterion, device, run, output_root)
-    val_metrics = test(best_model, val_evaluator, val_loader, task, criterion, device, run, output_root)
-    test_metrics = test(best_model, test_evaluator, test_loader, task, criterion, device, run, output_root)
+    train_metrics = test(best_model, train_evaluator, train_loader_at_eval, task, criterion, device)
+    val_metrics = test(best_model, val_evaluator, val_loader, task, criterion, device)
+    test_metrics = test(best_model, test_evaluator, test_loader, task, criterion, device)
 
     train_log = 'train  auc: %.5f  acc: %.5f\n' % (train_metrics[1], train_metrics[2])
     val_log = 'val  auc: %.5f  acc: %.5f\n' % (val_metrics[1], val_metrics[2])
@@ -204,7 +202,7 @@ def train(model, train_loader, task, criterion, optimizer, device):
     return epoch_loss
 
 
-def test(model, evaluator, data_loader, task, criterion, device, run, save_folder=None):
+def test(model, evaluator, data_loader, task, criterion, device, run=None, save_folder=None):
     model.eval()
 
     total_loss = []
@@ -233,7 +231,7 @@ def test(model, evaluator, data_loader, task, criterion, device, run, save_folde
 
         y_score = y_score.detach().cpu().numpy()
         y_targets = y_targets.detach().cpu().numpy()
-        auc, acc = evaluator.evaluate(y_score, y_targets, save_folder, run)
+        auc, acc = evaluator.evaluate(y_score, y_targets)
 
         test_loss = sum(total_loss) / len(total_loss)
 
@@ -297,8 +295,8 @@ if __name__ == '__main__':
     model_flag = args.model_flag
     resize = args.resize
     as_rgb = args.as_rgb
-    model_path = args.model_path
-    run = args.run
+    #model_path = args.model_path
+    #run = args.run
     subset_idx = np.arange(0, 1000)
 
     metrics = runTraining(subset_idx,
@@ -311,6 +309,4 @@ if __name__ == '__main__':
                           download,
                           model_flag,
                           resize,
-                          as_rgb,
-                          model_path,
-                          run)
+                          as_rgb)

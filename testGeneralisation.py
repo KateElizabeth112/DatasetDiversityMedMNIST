@@ -117,9 +117,7 @@ def main():
                           True,
                           'resnet18',
                           True,
-                          True,
-                          None,
-                          'model1')
+                          True)
 
     print("Finished experiment.")
 

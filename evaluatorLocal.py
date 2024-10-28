@@ -31,16 +31,8 @@ class Evaluator:
                 + "Please specify and create the `root` directory manually."
             )
 
-        npz_file = np.load(os.path.join(self.root, f"{self.flag}{self.size_flag}.npz"))
-
         self.info = INFO[self.flag]
 
-        """
-        if self.split in ["train", "val", "test"]:
-            self.labels = npz_file[f"{self.split}_labels"]
-        else:
-            raise ValueError
-        """
 
     def evaluate(self, y_score, y_targets, save_folder=None, run=None):
         # convert targets to uint8
@@ -53,89 +45,6 @@ class Evaluator:
         auc = getAUC(y_targets, y_score, task)
         acc = getACC(y_targets, y_score, task)
         metrics = Metrics(auc, acc)
-
-        if save_folder is not None:
-            path = os.path.join(
-                save_folder, self.get_standard_evaluation_filename(metrics, run)
-            )
-            pd.DataFrame(y_score).to_csv(path, header=None)
-        return metrics
-
-    def get_standard_evaluation_filename(self, metrics, run=None):
-        eval_txt = "_".join([f"[{k}]{v:.3f}" for k, v in zip(metrics._fields, metrics)])
-
-        if run is None:
-            import time
-
-            run = time.time()
-
-        ret = f"{self.flag}{self.size_flag}_{self.split}_{eval_txt}@{run}.csv"
-        return ret
-
-    """
-    def get_dummy_prediction(self):
-        "Return a dummy prediction of correct shape."
-        task = self.info["task"]
-        if task == "multi-class" or task == "ordinal-regression":
-            num_classes = self.labels.max()
-            dummy = np.random.rand(self.labels.shape[0], num_classes)
-            dummy = dummy / dummy.sum(axis=-1, keepdims=True)
-        else:
-            dummy = np.random.rand(*self.labels.shape)
-        return dummy
-    """
-
-    @classmethod
-    def parse_and_evaluate(cls, path, run=None):
-        """Parse and evaluate a standard result file.
-
-        A standard result file is named as:
-            {flag}{size_flag}_{split}|*|.csv (|*| can be anything)
-
-        In a standard evaluation file, we also save the metrics in the filename:
-            {flag}{size_flag}_{split}_[AUC]{auc:.3f}_[ACC]{acc:.3f}@{run}.csv
-
-        Here, `size_flag` is blank for 28 images, and `_size` for larger images, e.g., "_64".
-
-        In result/evaluation file, each line is (dataset index,float prediction).
-
-        For instance,
-        octmnist_test_[AUC]0.672_[ACC]0.892@3.csv
-            0,0.125,0.275,0.5,0.2
-            1,0.5,0.125,0.275,0.2
-        """
-        folder, filename = os.path.split(path)
-
-        flag, split_, *_ = filename.split("_")
-        size = None
-        if split_.startswith("train"):
-            split = "train"
-        elif split_.startswith("val"):
-            split = "val"
-        elif split_.startswith("test"):
-            split = "test"
-        else:
-            flag, size, split_, *_ = filename.split("_") # for size_flag
-            if split_.startswith("train"):
-                split = "train"
-            elif split_.startswith("val"):
-                split = "val"
-            elif split_.startswith("test"):
-                split = "test"
-            else:
-                raise ValueError
-
-        if run is None:
-            assert "@" in filename
-            run = filename.split("@")[-1].split(".")[0]
-
-        evaluator = cls(flag, split, size=size)
-
-        df = pd.read_csv(path, index_col=0, header=None)
-        y_score = df.sort_index().values
-
-        metrics = evaluator.evaluate(y_score, folder, run)
-        print(metrics)
 
         return metrics
 
