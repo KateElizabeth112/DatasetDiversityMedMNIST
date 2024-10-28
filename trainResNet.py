@@ -54,8 +54,8 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_s
     train_dataset = Subset(
         DataClass(split='train', transform=data_transform, download=download, as_rgb=as_rgb, size=size),
         subset_idx)
-    val_dataset = DataClass(split='val', transform=data_transform, download=download, as_rgb=as_rgb, size=size)
-    test_dataset = DataClass(split='test', transform=data_transform, download=download, as_rgb=as_rgb, size=size)
+    val_dataset = Subset(DataClass(split='val', transform=data_transform, download=download, as_rgb=as_rgb, size=size), np.arange(0,200))
+    test_dataset = Subset(DataClass(split='test', transform=data_transform, download=download, as_rgb=as_rgb, size=size), np.arange(0, 200))
 
     train_loader = data.DataLoader(dataset=train_dataset,
                                    batch_size=batch_size,
@@ -194,7 +194,7 @@ def train(model, train_loader, task, criterion, optimizer, device):
 
         total_loss.append(loss.item())
         # writer.add_scalar('train_loss_logs', loss.item(), iteration)
-        print('train_loss_{0:.3f}, epoch: {1}'.format(loss.item(), iteration))
+        print('train_loss {0:.3f}, iter: {1}'.format(loss.item(), iteration))
         iteration += 1
 
         loss.backward()

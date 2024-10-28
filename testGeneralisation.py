@@ -6,7 +6,6 @@ import torchvision.transforms as transforms
 from params import TrainerParams
 from autoencoder2D import ConvAutoencoder
 from torch.utils.data import Subset
-from torchvision import datasets
 from diversityScore import DiversityScore
 import pickle as pkl
 from datasetUtils import generateSubsetIndex, generateSubsetIndexDiverse, RotationTransform
@@ -18,7 +17,7 @@ from trainResNet import runTraining
 parser = argparse.ArgumentParser(description="Calculate the generalisation ability and diversity scores for a dataset")
 parser.add_argument("-e", "--experiment", type=str, help="Name of the experiment.",
                     default="GeneralisationMinMaxDiversity")
-parser.add_argument("-p", "--params_file", type=str, help="Name of params file.", default="test_params.pkl")
+parser.add_argument("-p", "--params_file", type=str, help="Name of params file.", default="local")
 parser.add_argument("-r", "--root_dir", type=str, help="Root directory where the code and data are located",
                     default="/Users/katecevora/Documents/PhD")
 
@@ -52,26 +51,46 @@ mlflow.set_experiment(experiment_name)
 
 
 def main():
-    # open a params file
-    assert os.path.exists(params_file_path), "The path {} to the params file does not exist.".format(params_file_path)
+    # open a params file if specified
+    if args.params_file != "local":
+        assert os.path.exists(params_file_path), "The path {} to the params file does not exist.".format(params_file_path)
 
-    f = open(params_file_path, "rb")
-    params = pkl.load(f)
-    f.close()
+        f = open(params_file_path, "rb")
+        params = pkl.load(f)
+        f.close()
+    else:
+        # this local params file allows us to easily modify settings during development
+        unique_id = "123456"
+        params = {
+            "data_category": "all",
+            "n_samples": 200,
+            "random_seed": 7,
+            "n_layers": 3,
+            "n_epochs": 3,
+            "n_workers": 0,
+            "batch_size": 20,
+            "model_name": "classifier_{}.pt".format(unique_id),
+            "dataset_name": "pneumoniamnist",
+            "diversity": "high",
+            "image_size": 128
+        }
 
     # check the params file
     assert isinstance(params, dict), f"Expected a dictionary, but got {type(params).__name__}"
 
     # check what dataset we are using and load the data
     dataset_name = params["dataset_name"]
+    image_size = params["image_size"]
+
     assert isinstance(dataset_name, str), "Dataset name must be a string."
-    assert dataset_name in ["MNIST", "EMNIST", "PneuNIST"], "The dataset name {} is not recognised."
+    assert dataset_name in ["pneumoniamnist", "chestmnist"], "The dataset name {} is not recognised."
+    assert image_size in [28, 128, 224], "Image size {} is not an option. Must be one of 28, 128 or 224".format(image_size)
 
     print("Starting TestGeneralisation {0} experiment with {1} dataset".format(experiment_name, dataset_name))
 
-    train_data = MedNISTDataset(data_dir, split="train", task="pneumoniamnist")
-    valid_data = MedNISTDataset(data_dir, split="val", task="pneumoniamnist")
-    test_data = MedNISTDataset(data_dir, split="test", task="pneumoniamnist")
+    train_data = MedNISTDataset(data_dir, split="train", task="pneumoniamnist", size=image_size)
+    valid_data = MedNISTDataset(data_dir, split="val", task="pneumoniamnist", size=image_size)
+    test_data = MedNISTDataset(data_dir, split="test", task="pneumoniamnist", size=image_size)
 
     ae_model_name = "autoencoderMedMNISTfull.pt"
 
@@ -99,9 +118,9 @@ def main():
 
     # then choose maximally or minimally diverse samples from the training subset
     subset_idx = generateSubsetIndexDiverse(train_data, "all", params["n_samples"], diversity=params["diversity"])
-
     idx_train_final = idx_train_mod[subset_idx]
-    print("Finished sampling data.")
+
+    print("Finished sampling data. {} samples".format(idx_train_final.shape[0]))
 
     # load the AE model that we will use to embed the data
     model_ae = ConvAutoencoder(save_path=os.path.join(models_path, ae_model_name))
@@ -110,7 +129,7 @@ def main():
                                    batch_size=params["batch_size"])
 
     # diversity score all datasets
-    ds_train = DiversityScore(train_data, trainer_params, model_ae)
+    ds_train = DiversityScore(Subset(train_data, subset_idx), trainer_params, model_ae)
 
     train_scores = ds_train.scoreDiversity()
 
@@ -121,8 +140,8 @@ def main():
                           './output',
                           3,
                           '0',
-                          50,
-                          28,
+                          5,
+                          128,
                           True,
                           'resnet18',
                           True,
@@ -151,9 +170,6 @@ def main():
         # log the metrics from training the classifier
         for metric in metrics.keys():
             mlflow.log_metric(metric, metrics[metric])
-
-        # log the loss plot for the classification model
-        # mlflow.log_artifact(loss_plot_save_path)
 
     print("Finished mlflow logging.")
 
