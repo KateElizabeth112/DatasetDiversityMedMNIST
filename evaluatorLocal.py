@@ -152,10 +152,14 @@ def getAUC(y_true, y_score, task):
 
     if task == "multi-label, binary-class":
         auc = 0
+        counter = 0
         for i in range(y_score.shape[1]):
-            label_auc = roc_auc_score(y_true[:, i], y_score[:, i])
-            auc += label_auc
-        ret = auc / y_score.shape[1]
+            # check if our batch of samples has only one label, and if so, skip AUC calculation
+            if np.unique(y_true[:, i]).shape[0] > 1:
+                label_auc = roc_auc_score(y_true[:, i], y_score[:, i])
+                auc += label_auc
+                counter += 1
+        ret = auc / counter
     elif task == "binary-class":
         if y_score.ndim == 2:
             y_score = y_score[:, -1]
