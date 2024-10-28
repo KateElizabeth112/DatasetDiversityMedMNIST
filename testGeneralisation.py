@@ -3,15 +3,13 @@ import argparse
 import mlflow
 import os
 import torchvision.transforms as transforms
-# from trainers import Trainer, TrainerParams, Inference
-# from autoencoder2D import ConvAutoencoder
-# from classifier import ImageClassifier
+from params import TrainerParams
+from autoencoder2D import ConvAutoencoder
 from torch.utils.data import Subset
 from torchvision import datasets
-# from diversityScore import DiversityScore
+from diversityScore import DiversityScore
 import pickle as pkl
 from datasetUtils import generateSubsetIndex, generateSubsetIndexDiverse, RotationTransform
-# import plotting
 import numpy as np
 from medMNISTDataset import MedNISTDataset
 from trainResNet import runTraining
@@ -53,12 +51,6 @@ mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
 mlflow.set_experiment(experiment_name)
 
 
-def getDataSubsets(data, n_samples, diversity="high"):
-    subset_idx = generateSubsetIndexDiverse(data, "all", n_samples, diversity=diversity)
-
-    return Subset(data, subset_idx)
-
-
 def main():
     # open a params file
     assert os.path.exists(params_file_path), "The path {} to the params file does not exist.".format(params_file_path)
@@ -80,7 +72,7 @@ def main():
     train_data = MedNISTDataset(data_dir, split="train", task="pneumoniamnist")
     valid_data = MedNISTDataset(data_dir, split="val", task="pneumoniamnist")
     test_data = MedNISTDataset(data_dir, split="test", task="pneumoniamnist")
-    out_features = 2
+
     ae_model_name = "autoencoderMedMNISTfull.pt"
 
     print("Finished loading data.")
@@ -111,7 +103,6 @@ def main():
     idx_train_final = idx_train_mod[subset_idx]
     print("Finished sampling data.")
 
-    """
     # load the AE model that we will use to embed the data
     model_ae = ConvAutoencoder(save_path=os.path.join(models_path, ae_model_name))
 
@@ -120,13 +111,9 @@ def main():
 
     # diversity score all datasets
     ds_train = DiversityScore(train_data, trainer_params, model_ae)
-    #ds_test = DiversityScore(test_data, trainer_params, model_ae)
-    #ds_valid = DiversityScore(valid_data, trainer_params, model_ae)
 
     train_scores = ds_train.scoreDiversity()
-    #test_scores = ds_test.scoreDiversity()
-    #valid_scores = ds_valid.scoreDiversity()
-    """
+
     print("Training ResNet for classification.")
 
     metrics = runTraining(idx_train_final,
@@ -151,18 +138,19 @@ def main():
         print("Starting mlflow logging")
         mlflow.log_params(params)
 
-        # Log the diversity metrics
-        for (ds, scores) in zip(["train", "test", "valid"], [train_scores, test_scores, valid_scores]):
-            for s in ["vs", "av_sim", "intdiv"]:
-                mlflow.log_metric("{0}_pixel_{1}".format(s, ds), scores["{}_pixel".format(s)])
-                mlflow.log_metric("{0}_embed_full_{1}".format(s, ds), scores["{}_auto".format(s)])
-                mlflow.log_metric("{0}_inception_{1}".format(s, ds), scores["{}_inception".format(s)])
+        # Log the diversity metrics for the training data
+        ds = "train"
 
-            mlflow.log_metric("vs_entropy_{}".format(ds), scores["label_entropy"])
+        for s in ["vs", "av_sim", "intdiv"]:
+            mlflow.log_metric("{0}_pixel_{1}".format(s, ds), train_scores["{}_pixel".format(s)])
+            mlflow.log_metric("{0}_embed_full_{1}".format(s, ds), train_scores["{}_auto".format(s)])
+            mlflow.log_metric("{0}_inception_{1}".format(s, ds), train_scores["{}_inception".format(s)])
 
-        # log the generalisation accuracy
-        mlflow.log_metric("test_accuracy", test_accuracy)
-        mlflow.log_metric("valid_accuracy", valid_accuracy)
+        mlflow.log_metric("vs_entropy_{}".format(ds), train_scores["label_entropy"])
+
+        # log the metrics from training the classifier
+        for metric in metrics.keys():
+            mlflow.log_metric(metric, metrics[metric])
 
         # log the loss plot for the classification model
         # mlflow.log_artifact(loss_plot_save_path)
