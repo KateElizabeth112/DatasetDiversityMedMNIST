@@ -1,14 +1,13 @@
 # code to handle diversity scoring of a dataset of vectors
 import numpy as np
 import vendiScore
-from params import TrainerParams
 import torch
 import torch.nn as nn
 from torch.utils.data.dataset import Dataset
 from copy import copy
 from scipy.stats import entropy
 from PIL import Image as im
-
+from autoencoder2D import ConvAutoencoder
 
 
 class DiversityScore:
@@ -16,20 +15,17 @@ class DiversityScore:
     Class for computing the diversity score for a dataset via a similarity matrix.
     """
 
-    def __init__(self, data, params, model=None):
+    def __init__(self, data, params):
         # check that the vectors parameter is a numpy array with two dimensions
-        assert isinstance(params, TrainerParams), "params is not an instance of trainerParams"
-        if model is not None:
-            assert isinstance(model, nn.Module), "model is not an instance of nn.Module"
+        assert isinstance(params, dict), "params should be a dictionary"
         assert isinstance(data, Dataset), "train_data is not an instance of Dataset"
 
-        self.model = model
         self.params = params
         self.data = data
 
         # set up a data loader
-        self.data_loader = torch.utils.data.DataLoader(self.data, batch_size=self.params.batch_size,
-                                                       num_workers=self.params.num_workers)
+        self.data_loader = torch.utils.data.DataLoader(self.data, batch_size=self.params["batch_size"],
+                                                       num_workers=self.params["n_workers"])
 
     def __len__(self):
         return self.vectors.shape[0]
@@ -41,18 +37,21 @@ class DiversityScore:
         :return:
         vectors numpy.ndarray: 2D array of vector representations of each image.
         """
-        # check if a model has been passed
-        assert self.model is not None, "No model has been passed to the DiversityScore object"
+        # figure out which model to load depending on the dataset and the image size
+        # TODO
+        save_path = "/Users/katecevora/Documents/PhD/code/AutoencoderMNIST/models/autoencoderMedMNISTfull.pt"
+        model_name = "autoencoder_{0}_{1}.pt".format(self.params["dataset_name"], self.params["image_size"])
 
         # load the model from the latest checkpoint
-        checkpoint = torch.load(self.model.save_path)
+        checkpoint = torch.load(save_path)
+        model = ConvAutoencoder(save_path=save_path)
 
         # Load the model state dictionary
-        self.model.load_state_dict(checkpoint['model_state_dict'])
+        model.load_state_dict(checkpoint['model_state_dict'])
 
         # iterate over all images in the dataset and extract representations
         for i, (images, labels) in enumerate(self.data_loader):
-            preds, images_compressed = self.model(images)
+            preds, images_compressed = model(images)
 
             # convert to a numpy array for easier handling after detaching gradient
             images_compressed = images_compressed.detach().numpy()
@@ -140,9 +139,7 @@ class DiversityScore:
 
         intdiv = vendiScore.intdiv_K(similarity_matrix)
 
-        av_sim = np.mean(similarity_matrix)
-
-        return score, av_sim, intdiv
+        return score, intdiv
 
     def labelEntropy(self):
         """
@@ -172,9 +169,8 @@ class DiversityScore:
         # Store the results in a dictionary
         results = {}
         for embedding in ["pixel", "auto", "inception"]:
-            vs, av_sim, intdiv = self.vendiScore(embed=embedding)
+            vs, intdiv = self.vendiScore(embed=embedding)
             results["vs_{}".format(embedding)] = vs
-            results["av_sim_{}".format(embedding)] = av_sim
             results["intdiv_{}".format(embedding)] = intdiv
 
         results["label_entropy"] = self.labelEntropy()

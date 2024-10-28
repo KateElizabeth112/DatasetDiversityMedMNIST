@@ -2,9 +2,6 @@
 import argparse
 import mlflow
 import os
-import torchvision.transforms as transforms
-from params import TrainerParams
-from autoencoder2D import ConvAutoencoder
 from torch.utils.data import Subset
 from diversityScore import DiversityScore
 import pickle as pkl
@@ -23,32 +20,20 @@ parser.add_argument("-r", "--root_dir", type=str, help="Root directory where the
 
 args = parser.parse_args()
 
+# set up paths to directories
 root_dir = args.root_dir
-code_dir = os.path.join(root_dir, "code/AutoencoderMNIST")
+code_dir = os.path.join(root_dir, "code/DatasetDiversityMNIST")
+output_dir = os.path.join(root_dir, "output")
 data_dir = os.path.join(root_dir, "data")
 experiment_name = args.experiment
-
-assert experiment_name in ["Generalisation_Fixed_Entropy",
-                           "GeneralisationMinMaxDiversity"], "Experiment name is not recognised"
-
 params_file_path = os.path.join(code_dir, "params", experiment_name, args.params_file)
-models_path = os.path.join(code_dir, "models")
-model_save_path = os.path.join(code_dir, "models")
 loss_plot_save_path = os.path.join(code_dir, "loss.png")
-
-# number of test/valid dataset samples per category
-number_test_samples_per_cat = 500
-
-# convert data to torch.FloatTensor
-transform_mnist = transforms.ToTensor()
-transform_emnist = transforms.Compose([transforms.ToTensor(), RotationTransform(-270)])
 
 # Set our tracking server uri for logging with MLFlow
 mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
 
 # Create a new MLflow Experiment
 mlflow.set_experiment(experiment_name)
-
 
 def main():
     # open a params file if specified
@@ -89,20 +74,13 @@ def main():
     print("Starting TestGeneralisation {0} experiment with {1} dataset".format(experiment_name, dataset_name))
 
     train_data = MedNISTDataset(data_dir, split="train", task="pneumoniamnist", size=image_size)
-    valid_data = MedNISTDataset(data_dir, split="val", task="pneumoniamnist", size=image_size)
-    test_data = MedNISTDataset(data_dir, split="test", task="pneumoniamnist", size=image_size)
-
-    ae_model_name = "autoencoderMedMNISTfull.pt"
+    #valid_data = MedNISTDataset(data_dir, split="val", task="pneumoniamnist", size=image_size)
+    #test_data = MedNISTDataset(data_dir, split="test", task="pneumoniamnist", size=image_size)
 
     print("Finished loading data.")
 
     if len(train_data) < params["n_samples"] * 5:
         print("Warning: train data has {0} samples not {1}".format(len(train_data), params["n_samples"] * 5))
-    if len(valid_data) < number_test_samples_per_cat * 10:
-        print("Warning: validation data has {0} samples not {1}".format(len(valid_data),
-                                                                        number_test_samples_per_cat * 10))
-    if len(test_data) < number_test_samples_per_cat * 10:
-        print("Warning: test data has {0} samples not {1}".format(len(test_data), number_test_samples_per_cat * 10))
 
     # First randomly select a subset so that we don't have to compute a massive similarity matrix
     n_train_samples = len(train_data)
@@ -122,14 +100,8 @@ def main():
 
     print("Finished sampling data. {} samples".format(idx_train_final.shape[0]))
 
-    # load the AE model that we will use to embed the data
-    model_ae = ConvAutoencoder(save_path=os.path.join(models_path, ae_model_name))
-
-    trainer_params = TrainerParams(n_epochs=params["n_epochs"], num_workers=params["n_workers"],
-                                   batch_size=params["batch_size"])
-
     # diversity score all datasets
-    ds_train = DiversityScore(Subset(train_data, subset_idx), trainer_params, model_ae)
+    ds_train = DiversityScore(Subset(train_data, subset_idx), params)
 
     train_scores = ds_train.scoreDiversity()
 
@@ -137,7 +109,7 @@ def main():
 
     metrics = runTraining(idx_train_final,
                           'pneumoniamnist',
-                          './output',
+                          output_dir,
                           3,
                           '0',
                           5,
@@ -160,7 +132,7 @@ def main():
         # Log the diversity metrics for the training data
         ds = "train"
 
-        for s in ["vs", "av_sim", "intdiv"]:
+        for s in ["vs", "intdiv"]:
             mlflow.log_metric("{0}_pixel_{1}".format(s, ds), train_scores["{}_pixel".format(s)])
             mlflow.log_metric("{0}_embed_full_{1}".format(s, ds), train_scores["{}_auto".format(s)])
             mlflow.log_metric("{0}_inception_{1}".format(s, ds), train_scores["{}_inception".format(s)])

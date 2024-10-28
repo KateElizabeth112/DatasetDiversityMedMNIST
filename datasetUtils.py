@@ -4,7 +4,6 @@ import torch
 import random
 import torchvision.transforms as transforms
 from diversityScore import DiversityScore
-from params import TrainerParams
 from torch.utils.data import Subset
 
 def getSimilarSamples(data, n_samples, diversity=None):
@@ -12,8 +11,10 @@ def getSimilarSamples(data, n_samples, diversity=None):
     assert diversity in ["high", "low"], "Please choose either high or low for the similarity ranking order"
 
     # create a diversity scoring object using the full dataset
-    trainer_params = TrainerParams(n_epochs=10, num_workers=0, batch_size=2)
-    ds = DiversityScore(data, trainer_params)
+    params = {"n_epochs": 10,
+              "n_workers": 0,
+              "batch_size": 2}
+    ds = DiversityScore(data, params)
 
     # get the similarity matrix for the whole dataset
     vectors = ds.getPixelVectors()
