@@ -1,13 +1,14 @@
 # code to handle diversity scoring of a dataset of vectors
 import numpy as np
 import vendiScore
-from trainers import TrainerParams
+from params import TrainerParams
 import torch
 import torch.nn as nn
 from torch.utils.data.dataset import Dataset
 from copy import copy
 from scipy.stats import entropy
 from PIL import Image as im
+
 
 
 class DiversityScore:

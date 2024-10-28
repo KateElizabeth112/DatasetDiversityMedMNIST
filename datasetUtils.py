@@ -4,9 +4,8 @@ import torch
 import random
 import torchvision.transforms as transforms
 from diversityScore import DiversityScore
-from trainers import TrainerParams
+from params import TrainerParams
 from torch.utils.data import Subset
-
 
 def getSimilarSamples(data, n_samples, diversity=None):
     assert diversity is not None, "Please select the order for the similarity ranking, high or low"
