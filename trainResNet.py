@@ -5,6 +5,7 @@ from collections import OrderedDict
 from copy import deepcopy
 
 import medmnist
+import numpy as np
 import PIL
 import torch
 import torch.nn as nn
@@ -15,12 +16,12 @@ import torchvision.transforms as transforms
 from medmnist import INFO
 from evaluatorLocal import Evaluator
 from models import ResNet18, ResNet50
-import numpy as np
+from torchvision.models import resnet18, resnet50
 from tqdm import trange
 
 
-def runTraining(subset_idx, data_flag, output_root, num_epochs, batch_size, size, download, model_flag, as_rgb, model_path, run):
-
+def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_size, size, download, model_flag, resize, as_rgb,
+         model_path, run):
     lr = 0.001
     gamma = 0.1
     milestones = [0.5 * num_epochs, 0.75 * num_epochs]
@@ -32,22 +33,27 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, batch_size, size
 
     DataClass = getattr(medmnist, info['python_class'])
 
-    # Check if we have a GPU
-    if torch.cuda.is_available():
-        device = torch.device('cuda')
-    else:
-        device = torch.device('cpu')
+    device = torch.device('cpu')
 
     output_root = os.path.join(output_root, data_flag, time.strftime("%y%m%d_%H%M%S"))
-
     if not os.path.exists(output_root):
         os.makedirs(output_root)
 
     print('==> Preparing data...')
 
-    data_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[.5], std=[.5])])
+    if resize:
+        data_transform = transforms.Compose(
+            [transforms.Resize((224, 224), interpolation=PIL.Image.NEAREST),
+             transforms.ToTensor(),
+             transforms.Normalize(mean=[.5], std=[.5])])
+    else:
+        data_transform = transforms.Compose(
+            [transforms.ToTensor(),
+             transforms.Normalize(mean=[.5], std=[.5])])
 
-    train_dataset = Subset(DataClass(split='train', transform=data_transform, download=download, as_rgb=as_rgb, size=size), subset_idx), np.arange(0, 100)
+    train_dataset = Subset(
+        DataClass(split='train', transform=data_transform, download=download, as_rgb=as_rgb, size=size),
+        subset_idx)
     val_dataset = DataClass(split='val', transform=data_transform, download=download, as_rgb=as_rgb, size=size)
     test_dataset = DataClass(split='test', transform=data_transform, download=download, as_rgb=as_rgb, size=size)
 
@@ -67,9 +73,11 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, batch_size, size
     print('==> Building and training model...')
 
     if model_flag == 'resnet18':
-        model = ResNet18(in_channels=n_channels, num_classes=n_classes)
+        model = resnet18(pretrained=False, num_classes=n_classes) if resize else ResNet18(in_channels=n_channels,
+                                                                                          num_classes=n_classes)
     elif model_flag == 'resnet50':
-        model = ResNet50(in_channels=n_channels, num_classes=n_classes)
+        model = resnet50(pretrained=False, num_classes=n_classes) if resize else ResNet50(in_channels=n_channels,
+                                                                                          num_classes=n_classes)
     else:
         raise NotImplementedError
 
@@ -158,6 +166,11 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, batch_size, size
     log = '%s\n' % (data_flag) + train_log + val_log + test_log
     print(log)
 
+    # with open(os.path.join(output_root, '%s_log.txt' % (data_flag)), 'a') as f:
+    #    f.write(log)
+
+    # writer.close()
+
 
 def train(model, train_loader, task, criterion, optimizer, device):
     total_loss = []
@@ -235,17 +248,23 @@ if __name__ == '__main__':
                         help='output root, where to save models and results',
                         type=str)
     parser.add_argument('--num_epochs',
-                        default=100,
+                        default=3,
                         help='num of epochs of training, the script would only test model if set num_epochs to 0',
                         type=int)
     parser.add_argument('--size',
                         default=28,
                         help='the image size of the dataset, 28 or 64 or 128 or 224, default=28',
                         type=int)
+    parser.add_argument('--gpu_ids',
+                        default='0',
+                        type=str)
     parser.add_argument('--batch_size',
-                        default=128,
+                        default=50,
                         type=int)
     parser.add_argument('--download',
+                        action="store_true")
+    parser.add_argument('--resize',
+                        help='resize images of size 28x28 to 224x224',
                         action="store_true")
     parser.add_argument('--as_rgb',
                         help='convert the grayscale image to RGB',
@@ -268,12 +287,15 @@ if __name__ == '__main__':
     output_root = args.output_root
     num_epochs = args.num_epochs
     size = args.size
+    gpu_ids = args.gpu_ids
     batch_size = args.batch_size
     download = args.download
     model_flag = args.model_flag
+    resize = args.resize
     as_rgb = args.as_rgb
     model_path = args.model_path
     run = args.run
-    subset_idx = np.arange(1, 1000)
+    subset_idx = np.arange(0, 1000)
 
-    runTraining(subset_idx, data_flag, output_root, num_epochs, batch_size, size, download, model_flag, as_rgb, model_path, run)
+    runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_size, size, download, model_flag, resize, as_rgb,
+         model_path, run)

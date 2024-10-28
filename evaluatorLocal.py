@@ -44,6 +44,7 @@ class Evaluator:
 
     def evaluate(self, y_score, y_targets, save_folder=None, run=None):
         # convert targets to uint8
+
         y_targets = y_targets.astype(np.uint8)
 
         assert y_score.shape[0] == y_targets.shape[0]
