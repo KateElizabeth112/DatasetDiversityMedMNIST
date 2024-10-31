@@ -8,6 +8,7 @@ from copy import copy
 from scipy.stats import entropy
 from PIL import Image as im
 from autoencoder2D import ConvAutoencoder
+from samMedEncoder import SamMedEncoder
 
 
 class DiversityScore:
@@ -132,6 +133,9 @@ class DiversityScore:
         elif embed == "inception":
             data = [im.fromarray(self.data[i][0].squeeze().numpy()) for i in range(len(self.data))]
             vectors = vendiScore.getInceptionEmbeddings(data)
+        elif embed == "sammed":
+            encoder = SamMedEncoder(self.data, self.params)
+            vectors = encoder.encode()
 
         similarity_matrix = self.cosineSimilarity(vectors)
 
@@ -168,7 +172,7 @@ class DiversityScore:
         """
         # Store the results in a dictionary
         results = {}
-        for embedding in ["pixel", "auto", "inception"]:
+        for embedding in ["pixel", "auto", "inception", "sammed"]:
             vs, intdiv = self.vendiScore(embed=embedding)
             results["vs_{}".format(embedding)] = vs
             results["intdiv_{}".format(embedding)] = intdiv

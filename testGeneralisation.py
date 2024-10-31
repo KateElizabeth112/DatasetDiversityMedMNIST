@@ -134,6 +134,7 @@ def main():
             mlflow.log_metric("{0}_pixel_{1}".format(s, ds), train_scores["{}_pixel".format(s)])
             mlflow.log_metric("{0}_embed_full_{1}".format(s, ds), train_scores["{}_auto".format(s)])
             mlflow.log_metric("{0}_inception_{1}".format(s, ds), train_scores["{}_inception".format(s)])
+            mlflow.log_metric("{0}_sammed_{1}".format(s, ds), train_scores["{}_sammed".format(s)])
 
         mlflow.log_metric("vs_entropy_{}".format(ds), train_scores["label_entropy"])
 
