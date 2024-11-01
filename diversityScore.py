@@ -133,6 +133,9 @@ class DiversityScore:
         elif embed == "inception":
             data = [im.fromarray(self.data[i][0].squeeze().numpy()) for i in range(len(self.data))]
             vectors = vendiScore.getInceptionEmbeddings(data)
+        elif embed == "random":
+            data = [im.fromarray(self.data[i][0].squeeze().numpy()) for i in range(len(self.data))]
+            vectors = vendiScore.getInceptionEmbeddings(data, pretrained=False)
         elif embed == "sammed":
             encoder = SamMedEncoder(self.data, self.params)
             vectors = encoder.encode()
@@ -172,7 +175,7 @@ class DiversityScore:
         """
         # Store the results in a dictionary
         results = {}
-        for embedding in ["pixel", "auto", "inception", "sammed"]:
+        for embedding in ["pixel", "auto", "inception", "sammed", "random"]:
             vs, intdiv = self.vendiScore(embed=embedding)
             results["vs_{}".format(embedding)] = vs
             results["intdiv_{}".format(embedding)] = intdiv

@@ -71,7 +71,7 @@ def main():
     assert dataset_name in ["pneumoniamnist", "chestmnist"], "The dataset name {} is not recognised."
     assert image_size in [28, 128, 224], "Image size {} is not an option. Must be one of 28, 128 or 224".format(image_size)
 
-    print("Starting TestGeneralisation {0} experiment with {1} dataset".format(experiment_name, dataset_name))
+    print("Starting {0} experiment with {1} dataset, image size {2}".format(experiment_name, dataset_name, image_size))
 
     train_data = MedNISTDataset(data_dir, split="train", task="pneumoniamnist", size=image_size)
     #valid_data = MedNISTDataset(data_dir, split="val", task="pneumoniamnist", size=image_size)
@@ -132,11 +132,12 @@ def main():
 
         for s in ["vs", "intdiv"]:
             mlflow.log_metric("{0}_pixel_{1}".format(s, ds), train_scores["{}_pixel".format(s)])
-            mlflow.log_metric("{0}_embed_full_{1}".format(s, ds), train_scores["{}_auto".format(s)])
+            mlflow.log_metric("{0}_auto_{1}".format(s, ds), train_scores["{}_auto".format(s)])
             mlflow.log_metric("{0}_inception_{1}".format(s, ds), train_scores["{}_inception".format(s)])
             mlflow.log_metric("{0}_sammed_{1}".format(s, ds), train_scores["{}_sammed".format(s)])
+            mlflow.log_metric("{0}_random_{1}".format(s, ds), train_scores["{}_random".format(s)])
 
-        mlflow.log_metric("vs_entropy_{}".format(ds), train_scores["label_entropy"])
+        mlflow.log_metric("label_entropy_{}".format(ds), train_scores["label_entropy"])
 
         # log the metrics from training the classifier
         for metric in metrics.keys():

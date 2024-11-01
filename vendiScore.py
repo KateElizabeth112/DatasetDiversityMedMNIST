@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch
 from vendi_score import data_utils
 
+
 def weight_K(K, p=None):
     if p is None:
         return K / K.shape[0]
@@ -91,8 +92,7 @@ def intdiv(samples, k, q=1, p=None):
 
 
 def get_inception(pretrained=True, pool=True):
-
-    model = inception_v3(pretrained=True, transform_input=True).eval()
+    model = inception_v3(pretrained=pretrained, transform_input=True).eval()
 
     if pool:
         model.fc = nn.Identity()
@@ -100,16 +100,17 @@ def get_inception(pretrained=True, pool=True):
 
 
 def get_embeddings(
-    images,
-    model=None,
-    transform=None,
-    batch_size=64,
-    device=torch.device("cpu"),
+        images,
+        model=None,
+        transform=None,
+        batch_size=64,
+        device=torch.device("cpu"),
+        pretrained=True
 ):
     if type(device) == str:
         device = torch.device(device)
     if model is None:
-        model = get_inception(pretrained=True, pool=True).to(device)
+        model = get_inception(pretrained=pretrained, pool=True).to(device)
         transform = inception_transforms()
     if transform is None:
         transform = transforms.ToTensor()
@@ -135,10 +136,10 @@ def inception_transforms():
     )
 
 
-def get_inception_embeddings(images, batch_size=64, device="cpu"):
+def get_inception_embeddings(images, batch_size=64, device="cpu", pretrained=True):
     if type(device) == str:
         device = torch.device(device)
-    model = get_inception(pretrained=True, pool=True).to(device)
+    model = get_inception(pretrained=pretrained, pool=True).to(device)
     transform = inception_transforms()
     return get_embeddings(
         images,
@@ -150,7 +151,7 @@ def get_inception_embeddings(images, batch_size=64, device="cpu"):
 
 
 def embedding_vendi_score(
-    images, batch_size=64, device="cpu", model=None, transform=None
+        images, batch_size=64, device="cpu", model=None, transform=None
 ):
     X = get_embeddings(
         images,
@@ -165,14 +166,14 @@ def embedding_vendi_score(
     return score_dual(X)
 
 
-def getInceptionEmbeddings( images, batch_size=64, device="cpu", model=None, transform=None):
-
+def getInceptionEmbeddings(images, batch_size=64, device="cpu", model=None, transform=None, pretrained=True):
     X = get_embeddings(
         images,
         batch_size=batch_size,
         device=device,
         model=model,
         transform=transform,
+        pretrained=pretrained
     )
 
     return X
