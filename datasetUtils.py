@@ -6,31 +6,35 @@ import torchvision.transforms as transforms
 from diversityScore import DiversityScore
 from torch.utils.data import Subset
 
+
 def getSimilarSamples(data, n_samples, diversity=None):
     assert diversity is not None, "Please select the order for the similarity ranking, high or low"
-    assert diversity in ["high", "low"], "Please choose either high or low for the similarity ranking order"
+    assert diversity in ["high", "low", "random"], "Please choose either high, low or random for the similarity ranking order"
 
-    # create a diversity scoring object using the full dataset
-    params = {"n_epochs": 10,
-              "n_workers": 0,
-              "batch_size": 2}
+    if diversity == "random":
+        return np.array(random.sample(range(0, len(data)), n_samples))
+    else:
+        # create a diversity scoring object using the full dataset
+        params = {"n_epochs": 10,
+                  "n_workers": 0,
+                  "batch_size": 2}
 
-    ds = DiversityScore(data, None, params)
+        ds = DiversityScore(data, None, params)
 
-    # get the similarity matrix for the whole dataset
-    vectors = ds.getPixelVectors()
-    sim_matrix = ds.cosineSimilarity(vectors)
+        # get the similarity matrix for the whole dataset
+        vectors = ds.getPixelVectors()
+        sim_matrix = ds.cosineSimilarity(vectors)
 
-    # find average similarity for each sample
-    average_sim = np.mean(sim_matrix, axis=0)
+        # find average similarity for each sample
+        average_sim = np.mean(sim_matrix, axis=0)
 
-    # order the average similarity vector (smallest first) and find the first N samples
-    if diversity == "low":
-        index = np.flip(np.argsort(average_sim))[:n_samples]
-    elif diversity == "high":
-        index = np.argsort(average_sim)[:n_samples]
+        # order the average similarity vector (smallest first) and find the first N samples
+        if diversity == "low":
+            index = np.flip(np.argsort(average_sim))[:n_samples]
+        elif diversity == "high":
+            index = np.argsort(average_sim)[:n_samples]
 
-    return index
+        return index
 
 def generateSubsetIndexDiverse(data, category, n_samples, diversity="None"):
     """
