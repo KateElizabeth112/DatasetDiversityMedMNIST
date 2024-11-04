@@ -2,12 +2,11 @@
 import numpy as np
 import vendiScore
 import torch
-import torch.nn as nn
 from torch.utils.data.dataset import Dataset
 from copy import copy
 from scipy.stats import entropy
 from PIL import Image as im
-from autoencoder2D import ConvAutoencoder
+from byolEncoder import BYOLEncoder
 from samMedEncoder import SamMedEncoder
 
 
@@ -16,13 +15,14 @@ class DiversityScore:
     Class for computing the diversity score for a dataset via a similarity matrix.
     """
 
-    def __init__(self, data, params):
+    def __init__(self, data, data_rgb, params):
         # check that the vectors parameter is a numpy array with two dimensions
         assert isinstance(params, dict), "params should be a dictionary"
         assert isinstance(data, Dataset), "train_data is not an instance of Dataset"
 
         self.params = params
         self.data = data
+        self.data_rgb = data_rgb
 
         # set up a data loader
         self.data_loader = torch.utils.data.DataLoader(self.data, batch_size=self.params["batch_size"],
@@ -31,47 +31,6 @@ class DiversityScore:
     def __len__(self):
         return self.vectors.shape[0]
 
-    def getEmbeddings(self):
-        """
-        Retrieves the compressed representations of a dataset from the middle layer of an autoencoder. Loads the most
-        recent model checkpoint to compute representations.
-        :return:
-        vectors numpy.ndarray: 2D array of vector representations of each image.
-        """
-        # figure out which model to load depending on the dataset and the image size
-        # TODO
-        save_path = "/Users/katecevora/Documents/PhD/code/AutoencoderMNIST/models/autoencoderMedMNISTfull.pt"
-        model_name = "autoencoder_{0}_{1}.pt".format(self.params["dataset_name"], self.params["image_size"])
-
-        # load the model from the latest checkpoint
-        checkpoint = torch.load(save_path)
-        model = ConvAutoencoder(save_path=save_path)
-
-        # Load the model state dictionary
-        model.load_state_dict(checkpoint['model_state_dict'])
-
-        # iterate over all images in the dataset and extract representations
-        for i, (images, labels) in enumerate(self.data_loader):
-            preds, images_compressed = model(images)
-
-            # convert to a numpy array for easier handling after detaching gradient
-            images_compressed = images_compressed.detach().numpy()
-
-            # flatten all dimensions except the first
-            flattened_size = np.prod(images_compressed.shape[1:])
-            images_compressed = images_compressed.reshape((images_compressed.shape[0], flattened_size))
-
-            # stack the results from each batch until we have run over the entire dataset
-            if i == 0:
-                # assign the values of images compressed to output
-                vectors = copy(images_compressed)
-            else:
-                vectors = np.vstack((vectors, images_compressed))
-
-        assert len(vectors.shape) == 2, "The output array should have two dimensions but it has {}".format(
-            len(vectors.shape))
-
-        return vectors
 
     def getPixelVectors(self):
         """
@@ -129,7 +88,8 @@ class DiversityScore:
         if embed == "pixel":
             vectors = self.getPixelVectors()
         elif embed == "auto":
-            vectors = self.getEmbeddings()
+            encoder = BYOLEncoder(self.data_rgb, self.params)
+            vectors = encoder.encode()
         elif embed == "inception":
             data = [im.fromarray(self.data[i][0].squeeze().numpy()) for i in range(len(self.data))]
             vectors = vendiScore.getInceptionEmbeddings(data)
