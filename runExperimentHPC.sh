@@ -11,7 +11,7 @@ cd ${PBS_O_WORKDIR}
 module load anaconda3/personal
 
 # install requirements
-pip install -r requirements.txt
+#pip install -r requirements.txt
 
 # run experiments
-python runExperiment.py -r "/Users/katecevora/Documents/PhD" -n 200 -d "pneumoniamnist" -i 128
+python runExperiment.py -r "/rds/general/user/kc2322/home/" -n 200 -d "pneumoniamnist" -i 128
