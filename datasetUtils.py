@@ -46,7 +46,7 @@ def generateSubsetIndexDiverse(data, category, n_samples, diversity="None"):
     :return:
     """
     assert diversity is not None, "Please select the order for the similarity ranking, high or low"
-    assert diversity in ["high", "low"], "Please choose either high or low for the similarity ranking order"
+    assert diversity in ["high", "random", "low"], "Please choose either high or low for the similarity ranking order"
     assert isinstance(n_samples, int), "The number of samples must be an integer"
 
     if category == "all":
