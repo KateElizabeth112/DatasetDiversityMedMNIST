@@ -13,8 +13,6 @@ import torchvision.transforms as transforms
 
 # Set up the argument parser
 parser = argparse.ArgumentParser(description="Calculate the generalisation ability and diversity scores for a dataset")
-parser.add_argument("-e", "--experiment", type=str, help="Name of the experiment.",
-                    default="GeneralisationMinMaxDiversity")
 parser.add_argument("-p", "--params_file", type=str, help="Name of params file.", default="local")
 parser.add_argument("-r", "--root_dir", type=str, help="Root directory where the code and data are located",
                     default="/Users/katecevora/Documents/PhD")
@@ -23,18 +21,17 @@ args = parser.parse_args()
 
 # set up paths to directories
 root_dir = args.root_dir
-code_dir = os.path.join(root_dir, "code/DatasetDiversityMNIST")
+code_dir = os.path.join(root_dir, "code/DatasetDiversityMedMNIST")
 output_dir = os.path.join(root_dir, "output")
 data_dir = os.path.join(root_dir, "data")
-experiment_name = args.experiment
-params_file_path = os.path.join(code_dir, "params", experiment_name, args.params_file)
+params_file_path = os.path.join(code_dir, "params", args.params_file)
 loss_plot_save_path = os.path.join(code_dir, "loss.png")
 
 # Set our tracking server uri for logging with MLFlow
 mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
 
 # Create a new MLflow Experiment
-mlflow.set_experiment(experiment_name)
+mlflow.set_experiment("MedMNISTGeneralisation")
 
 from medmnist import INFO
 import medmnist
@@ -70,12 +67,15 @@ def main():
     # check what dataset we are using and load the data
     dataset_name = params["dataset_name"]
     image_size = params["image_size"]
+    n_samples = params["n_samples"]
+    diversity = params["diversity"]
+    random_seed = params["random_seed"]
 
     assert isinstance(dataset_name, str), "Dataset name must be a string."
     assert dataset_name in ["pneumoniamnist", "chestmnist"], "The dataset name {} is not recognised."
     assert image_size in [28, 128, 224], "Image size {} is not an option. Must be one of 28, 128 or 224".format(image_size)
 
-    print("Starting {0} experiment with {1} dataset, image size {2}".format(experiment_name, dataset_name, image_size))
+    print("Starting experiment with {0} dataset, image size {1}".format(dataset_name, image_size))
 
     train_data = MedNISTDataset(data_dir, split="train", task="pneumoniamnist", size=image_size)
 
@@ -91,13 +91,12 @@ def main():
 
     print("Finished loading data.")
 
-    if len(train_data) < params["n_samples"] * 5:
-        print("Warning: train data has {0} samples not {1}".format(len(train_data), params["n_samples"] * 5))
+    if len(train_data) < n_samples * 5:
+        print("Warning: train data has {0} samples not {1}".format(len(train_data), n_samples * 5))
 
     # First randomly select a subset so that we don't have to compute a massive similarity matrix
     n_train_samples = len(train_data)
-    idx_train = generateSubsetIndex(train_data, "all", min(params["n_samples"] * 5, len(train_data)),
-                                    params["random_seed"])
+    idx_train = generateSubsetIndex(train_data, "all", min(n_samples * 5, len(train_data)), random_seed)
 
     train_data = Subset(train_data, idx_train)
 
@@ -107,7 +106,7 @@ def main():
     idx_train_mod = idx_train_orig[idx_train]
 
     # then choose maximally or minimally diverse samples from the training subset
-    subset_idx = generateSubsetIndexDiverse(train_data, "all", params["n_samples"], diversity=params["diversity"])
+    subset_idx = generateSubsetIndexDiverse(train_data, "all", n_samples, diversity=diversity)
     idx_train_final = idx_train_mod[subset_idx]
 
     print("Finished sampling data. {} samples".format(idx_train_final.shape[0]))
