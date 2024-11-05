@@ -23,7 +23,7 @@ args = parser.parse_args()
 root_dir = args.root_dir
 code_dir = os.path.join(root_dir, "code/DatasetDiversityMedMNIST")
 output_dir = os.path.join(root_dir, "output")
-data_dir = os.path.join(root_dir, "data")
+data_dir = os.path.join(root_dir, "data/MedMNIST")
 params_file_path = os.path.join(code_dir, "params", args.params_file)
 loss_plot_save_path = os.path.join(code_dir, "loss.png")
 
@@ -129,7 +129,8 @@ def main():
                           True,
                           'resnet18',
                           True,
-                          True)
+                          True,
+                          root=data_dir)
 
     print("Finished experiment.")
 

@@ -20,7 +20,7 @@ from torchvision.models import resnet18, resnet50
 from tqdm import trange
 
 
-def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_size, size, download, model_flag, resize, as_rgb):
+def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_size, size, download, model_flag, resize, as_rgb, root):
     lr = 0.001
     gamma = 0.1
     milestones = [0.5 * num_epochs, 0.75 * num_epochs]
@@ -51,10 +51,10 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_s
              transforms.Normalize(mean=[.5], std=[.5])])
 
     train_dataset = Subset(
-        DataClass(split='train', transform=data_transform, download=download, as_rgb=as_rgb, size=size),
+        DataClass(split='train', transform=data_transform, download=download, as_rgb=as_rgb, size=size, root=root),
         subset_idx)
-    val_dataset = Subset(DataClass(split='val', transform=data_transform, download=download, as_rgb=as_rgb, size=size), np.arange(0,200))
-    test_dataset = Subset(DataClass(split='test', transform=data_transform, download=download, as_rgb=as_rgb, size=size), np.arange(0, 200))
+    val_dataset = Subset(DataClass(split='val', transform=data_transform, download=download, as_rgb=as_rgb, size=size, root=root), np.arange(0,200))
+    test_dataset = Subset(DataClass(split='test', transform=data_transform, download=download, as_rgb=as_rgb, size=size, root=root), np.arange(0, 200))
 
     train_loader = data.DataLoader(dataset=train_dataset,
                                    batch_size=batch_size,
@@ -264,7 +264,7 @@ if __name__ == '__main__':
                         default=50,
                         type=int)
     parser.add_argument('--download',
-                        action="store_true")
+                        action="store_false")
     parser.add_argument('--resize',
                         help='resize images of size 28x28 to 224x224',
                         action="store_true")
@@ -283,6 +283,10 @@ if __name__ == '__main__':
                         default='model1',
                         help='to name a standard evaluation csv file, named as {flag}_{split}_[AUC]{auc:.3f}_[ACC]{acc:.3f}@{run}.csv',
                         type=str)
+    parser.add_argument('--root',
+                        default='~/.medmnist',
+                        help='Root directory of dataset',
+                        type=str)
 
     args = parser.parse_args()
     data_flag = args.data_flag
@@ -297,6 +301,7 @@ if __name__ == '__main__':
     as_rgb = args.as_rgb
     #model_path = args.model_path
     #run = args.run
+    root = args.root
     subset_idx = np.arange(0, 1000)
 
     metrics = runTraining(subset_idx,
@@ -309,4 +314,5 @@ if __name__ == '__main__':
                           download,
                           model_flag,
                           resize,
-                          as_rgb)
+                          as_rgb,
+                          root)

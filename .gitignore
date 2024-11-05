@@ -1,2 +1,5 @@
 .*
-*/
+*mlruns/
+*output/
+*params/
+*BYOL/

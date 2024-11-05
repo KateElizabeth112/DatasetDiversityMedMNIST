@@ -19,9 +19,9 @@ class MedNISTDataset(torch.utils.data.Dataset):
         assert size in allowed_sizes, "The image size must be an integer in the set {}".format(allowed_sizes)
 
         if size == 28:
-            npz_path = os.path.join(data_dir, "MedMNIST/{}.npz".format(task))
+            npz_path = os.path.join(data_dir, "{}.npz".format(task))
         else:
-            npz_path = os.path.join(data_dir, "MedMNIST/{}_{}.npz".format(task, size))
+            npz_path = os.path.join(data_dir, "{}_{}.npz".format(task, size))
 
         assert os.path.exists(npz_path), "The path {} to the dataset does not exist".format(npz_path)
 
