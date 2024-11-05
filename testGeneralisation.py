@@ -27,8 +27,9 @@ data_dir = os.path.join(root_dir, "data")
 params_file_path = os.path.join(code_dir, "params", args.params_file)
 loss_plot_save_path = os.path.join(code_dir, "loss.png")
 
-# Set our tracking server uri for logging with MLFlow
-mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
+# Set our tracking server uri for logging with MLFlow if we are running locally
+if args.params_file == "local":
+    mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
 
 # Create a new MLflow Experiment
 mlflow.set_experiment("MedMNISTGeneralisation")
