@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -l walltime=12:00:00
+#PBS -l walltime=20:00:00
 #PBS -l select=1:ncpus=15:mem=120gb
 #PBS -N pneumoniamnist_200_28
 

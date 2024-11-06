@@ -53,7 +53,7 @@ def main():
             "n_samples": 200,
             "random_seed": 7,
             "n_layers": 3,
-            "n_epochs": 3,
+            "n_epochs": 80,
             "n_workers": 0,
             "batch_size": 20,
             "model_name": "classifier_{}.pt".format(unique_id),
