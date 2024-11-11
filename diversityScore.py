@@ -135,11 +135,10 @@ class DiversityScore:
         """
         # Store the results in a dictionary
         results = {}
+        results["label_entropy"] = self.labelEntropy()
         for embedding in ["pixel", "auto", "inception", "sammed", "random"]:
             vs, intdiv = self.vendiScore(embed=embedding)
             results["vs_{}".format(embedding)] = vs
             results["intdiv_{}".format(embedding)] = intdiv
-
-        results["label_entropy"] = self.labelEntropy()
 
         return results

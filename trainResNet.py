@@ -53,6 +53,7 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_s
     train_dataset = Subset(
         DataClass(split='train', transform=data_transform, download=download, as_rgb=as_rgb, size=size, root=root),
         subset_idx)
+
     val_dataset = Subset(DataClass(split='val', transform=data_transform, download=download, as_rgb=as_rgb, size=size, root=root), np.arange(0,200))
     test_dataset = Subset(DataClass(split='test', transform=data_transform, download=download, as_rgb=as_rgb, size=size, root=root), np.arange(0, 200))
 
@@ -69,7 +70,7 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_s
                                   batch_size=batch_size,
                                   shuffle=False)
 
-    print('==> Building and training model...')
+    print('==> Building and training model for {} epochs...'.format(num_epochs))
 
     if model_flag == 'resnet18':
         model = resnet18(pretrained=False, num_classes=n_classes) if resize else ResNet18(in_channels=n_channels,

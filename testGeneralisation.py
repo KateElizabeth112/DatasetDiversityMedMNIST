@@ -59,7 +59,7 @@ def main():
             "model_name": "classifier_{}.pt".format(unique_id),
             "dataset_name": "pneumoniamnist",
             "diversity": "high",
-            "image_size": 128
+            "image_size": 28
         }
 
     # check the params file
@@ -71,6 +71,7 @@ def main():
     n_samples = params["n_samples"]
     diversity = params["diversity"]
     random_seed = params["random_seed"]
+    n_epochs = params["n_epochs"]
 
     assert isinstance(dataset_name, str), "Dataset name must be a string."
     assert dataset_name in ["pneumoniamnist", "chestmnist"], "The dataset name {} is not recognised."
@@ -78,7 +79,7 @@ def main():
 
     print("Starting experiment with {0} dataset, image size {1}".format(dataset_name, image_size))
 
-    train_data = MedNISTDataset(data_dir, split="train", task="pneumoniamnist", size=image_size)
+    train_data = MedNISTDataset(data_dir, split="train", task=dataset_name, size=image_size)
 
     info = INFO[dataset_name]
     DataClass = getattr(medmnist, info['python_class'])
@@ -87,8 +88,8 @@ def main():
                                   download=True,
                                   as_rgb=True,
                                   size=image_size)
-    #valid_data = MedNISTDataset(data_dir, split="val", task="pneumoniamnist", size=image_size)
-    #test_data = MedNISTDataset(data_dir, split="test", task="pneumoniamnist", size=image_size)
+    #valid_data = MedNISTDataset(data_dir, split="val", task="dataset_name", size=image_size)
+    #test_data = MedNISTDataset(data_dir, split="test", task="dataset_name", size=image_size)
 
     print("Finished loading data.")
 
@@ -112,25 +113,25 @@ def main():
 
     print("Finished sampling data. {} samples".format(idx_train_final.shape[0]))
 
-    # diversity score all datasets
-    ds_train = DiversityScore(Subset(train_data, subset_idx), Subset(train_data_rgb, idx_train_final), params)
-
-    train_scores = ds_train.scoreDiversity()
-
     print("Training ResNet for classification.")
 
     metrics = runTraining(idx_train_final,
-                          'pneumoniamnist',
+                          dataset_name,
                           output_dir,
-                          3,
+                          n_epochs,
                           '0',
                           5,
-                          128,
-                          True,
+                          image_size,
+                          False,
                           'resnet18',
                           True,
                           True,
                           root=data_dir)
+
+    # diversity score all datasets
+    ds_train = DiversityScore(Subset(train_data, subset_idx), Subset(train_data_rgb, idx_train_final), params)
+
+    train_scores = ds_train.scoreDiversity()
 
     print("Finished experiment.")
 

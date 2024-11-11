@@ -12,7 +12,7 @@ class MedNISTDataset(torch.utils.data.Dataset):
         assert isinstance(task, str), "The argument task must be a string"
         assert isinstance(size, int), "The size of the image must be an integer"
 
-        allowed_tasks = ["pneumoniamnist"]
+        allowed_tasks = ["pneumoniamnist", "chestmnist"]
         assert task in allowed_tasks, "The argument task must be in the set {}".format(allowed_tasks)
 
         allowed_sizes = [28, 128, 224]
