@@ -41,4 +41,4 @@ class MedNISTDataset(torch.utils.data.Dataset):
         return len(self.images)
 
     def __getitem__(self, index):
-        return self.data_transform(self.images[index]), self.labels[index][0]
+        return self.data_transform(self.images[index]), self.labels[index]

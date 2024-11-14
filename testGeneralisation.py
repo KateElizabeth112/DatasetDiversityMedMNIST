@@ -57,7 +57,7 @@ def main():
             "n_workers": 0,
             "batch_size": 20,
             "model_name": "classifier_{}.pt".format(unique_id),
-            "dataset_name": "pneumoniamnist",
+            "dataset_name": "chestmnist",
             "diversity": "high",
             "image_size": 28
         }
@@ -85,7 +85,7 @@ def main():
     DataClass = getattr(medmnist, info['python_class'])
     train_data_rgb = DataClass(split='train',
                                   transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[.5], std=[.5])]),
-                                  download=True,
+                                  download=False,
                                   as_rgb=True,
                                   size=image_size)
     #valid_data = MedNISTDataset(data_dir, split="val", task="dataset_name", size=image_size)
@@ -113,6 +113,13 @@ def main():
 
     print("Finished sampling data. {} samples".format(idx_train_final.shape[0]))
 
+    print("Scoring data for diversity")
+
+    # diversity score all datasets
+    ds_train = DiversityScore(Subset(train_data, subset_idx), Subset(train_data_rgb, idx_train_final), params)
+
+    train_scores = ds_train.scoreDiversity()
+
     print("Training ResNet for classification.")
 
     metrics = runTraining(idx_train_final,
@@ -127,11 +134,6 @@ def main():
                           True,
                           True,
                           root=data_dir)
-
-    # diversity score all datasets
-    ds_train = DiversityScore(Subset(train_data, subset_idx), Subset(train_data_rgb, idx_train_final), params)
-
-    train_scores = ds_train.scoreDiversity()
 
     print("Finished experiment.")
 

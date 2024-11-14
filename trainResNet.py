@@ -244,7 +244,7 @@ if __name__ == '__main__':
         description='RUN Baseline model of MedMNIST2D')
 
     parser.add_argument('--data_flag',
-                        default='pneumoniamnist',
+                        default='chestmnist',
                         type=str)
     parser.add_argument('--output_root',
                         default='./output',
@@ -265,7 +265,7 @@ if __name__ == '__main__':
                         default=50,
                         type=int)
     parser.add_argument('--download',
-                        action="store_false")
+                        action="store_true")
     parser.add_argument('--resize',
                         help='resize images of size 28x28 to 224x224',
                         action="store_true")
@@ -285,7 +285,7 @@ if __name__ == '__main__':
                         help='to name a standard evaluation csv file, named as {flag}_{split}_[AUC]{auc:.3f}_[ACC]{acc:.3f}@{run}.csv',
                         type=str)
     parser.add_argument('--root',
-                        default='~/.medmnist',
+                        default="/Users/katecevora/Documents/PhD/data/MedMNIST",
                         help='Root directory of dataset',
                         type=str)
 
