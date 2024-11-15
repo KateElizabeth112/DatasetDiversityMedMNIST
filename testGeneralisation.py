@@ -7,9 +7,10 @@ from diversityScore import DiversityScore
 import pickle as pkl
 from datasetUtils import generateSubsetIndex, generateSubsetIndexDiverse, RotationTransform
 import numpy as np
-from medMNISTDataset import MedNISTDataset
 from trainResNet import runTraining
 import torchvision.transforms as transforms
+import medmnist
+from medmnist import INFO
 
 # Set up the argument parser
 parser = argparse.ArgumentParser(description="Calculate the generalisation ability and diversity scores for a dataset")
@@ -37,10 +38,6 @@ if args.params_file == "local":
 # Create a new MLflow Experiment
 mlflow.set_experiment("MedMNISTGeneralisation")
 
-from medmnist import INFO
-import medmnist
-
-
 def main():
     # open a params file if specified
     if args.params_file != "local":
@@ -58,13 +55,14 @@ def main():
             "n_samples": 200,
             "random_seed": 7,
             "n_layers": 3,
-            "n_epochs": 80,
+            "n_epochs": 3,
             "n_workers": 0,
             "batch_size": 20,
             "model_name": "classifier_{}.pt".format(unique_id),
-            "dataset_name": "chestmnist",
+            "dataset_name": "pneumoniamnist",
             "diversity": "high",
-            "image_size": 28
+            "image_size": 28,
+            "code_dir": code_dir
         }
 
     # check the params file
@@ -127,7 +125,7 @@ def main():
     print("Scoring data for diversity")
 
     # diversity score all datasets
-    ds_train = DiversityScore(Subset(train_data, subset_idx), Subset(train_data_rgb, idx_train_final), params)
+    ds_train = DiversityScore(Subset(train_data, subset_idx), Subset(train_data_rgb, idx_train_final), np.array(idx_train_final), params)
 
     train_scores = ds_train.scoreDiversity()
 

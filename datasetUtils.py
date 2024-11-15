@@ -17,9 +17,10 @@ def getSimilarSamples(data, n_samples, diversity=None):
         # create a diversity scoring object using the full dataset
         params = {"n_epochs": 10,
                   "n_workers": 0,
-                  "batch_size": 2}
+                  "batch_size": 2,
+                  "code_dir": None}
 
-        ds = DiversityScore(data, None, params)
+        ds = DiversityScore(data, None, None, params)
 
         # get the similarity matrix for the whole dataset
         vectors = ds.getPixelVectors()

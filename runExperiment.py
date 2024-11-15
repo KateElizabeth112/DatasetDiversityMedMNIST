@@ -8,7 +8,7 @@ import pickle as pkl
 parser = argparse.ArgumentParser(description="Run experiments to determine the relationship between dataset diversity and generalisation performance")
 parser.add_argument("-r", "--root_dir", type=str, help="Root directory where the code and data are located", default="/Users/katecevora/Documents/PhD")
 parser.add_argument("-n", "--num_samples", type=int, help="Number of dataset samples per category to use", default=200)
-parser.add_argument("-d", "--dataset", type=str, help="Dataset which we will use to run experiments", default="chestmnist")
+parser.add_argument("-d", "--dataset", type=str, help="Dataset which we will use to run experiments", default="pneumoniamnist")
 parser.add_argument("-i", "--image_size", type=int, help="Image size", default=28)
 
 args = parser.parse_args()
@@ -44,7 +44,8 @@ def main():
                 "model_name": "classifier_{}.pt".format(unique_id),
                 "dataset_name": dataset,
                 "diversity": diversity,
-                "image_size": image_size
+                "image_size": image_size,
+                "code_dir": code_dir
             }
 
             params_name = "{}_{}_{}_{}_{}.pkl".format(dataset, image_size, n_samples, s, diversity)
@@ -54,8 +55,8 @@ def main():
             f.close()
 
             print(
-                "Running experiment with configuration: image size={0}, n_samples={1}, seed={2}, dataset={3}".format(
-                    image_size, n_samples, s, dataset))
+                "Running experiment with configuration: image size={0}, n_samples={1}, seed={2}, dataset={3}, num_epochs={4}".format(
+                    image_size, n_samples, s, dataset, params["n_epochs"]))
 
             command = ["python", "testGeneralisation.py", "-p", params_name, "-r", args.root_dir]
 

@@ -15,7 +15,7 @@ class DiversityScore:
     Class for computing the diversity score for a dataset via a similarity matrix.
     """
 
-    def __init__(self, data, data_rgb, params):
+    def __init__(self, data, data_rgb, indices, params):
         # check that the vectors parameter is a numpy array with two dimensions
         assert isinstance(params, dict), "params should be a dictionary"
         assert isinstance(data, Dataset), "train_data is not an instance of Dataset"
@@ -23,6 +23,8 @@ class DiversityScore:
         self.params = params
         self.data = data
         self.data_rgb = data_rgb
+        self.indices = indices
+        self.code_dir = params["code_dir"]
 
         # set up a data loader
         self.data_loader = torch.utils.data.DataLoader(self.data, batch_size=self.params["batch_size"],
@@ -98,7 +100,7 @@ class DiversityScore:
             vectors = vendiScore.getInceptionEmbeddings(data, pretrained=False)
         elif embed == "sammed":
             encoder = SamMedEncoder(self.data, self.params)
-            vectors = encoder.encode()
+            vectors = encoder.retrieve(self.indices)
 
         similarity_matrix = self.cosineSimilarity(vectors)
 
