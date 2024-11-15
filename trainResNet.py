@@ -20,17 +20,15 @@ from torchvision.models import resnet18, resnet50
 from tqdm import trange
 
 
-def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_size, size, download, model_flag, resize, as_rgb, root):
+def runTraining(train_dataset, val_dataset, test_dataset, data_flag, output_root, num_epochs, batch_size, size, model_flag, resize):
     lr = 0.001
     gamma = 0.1
     milestones = [0.5 * num_epochs, 0.75 * num_epochs]
 
     info = INFO[data_flag]
     task = info['task']
-    n_channels = 3 if as_rgb else info['n_channels']
+    n_channels = 3
     n_classes = len(info['label'])
-
-    DataClass = getattr(medmnist, info['python_class'])
 
     device = torch.device('cpu')
 
@@ -39,23 +37,6 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_s
         os.makedirs(output_root)
 
     print('==> Preparing data...')
-
-    if resize:
-        data_transform = transforms.Compose(
-            [transforms.Resize((224, 224), interpolation=PIL.Image.NEAREST),
-             transforms.ToTensor(),
-             transforms.Normalize(mean=[.5], std=[.5])])
-    else:
-        data_transform = transforms.Compose(
-            [transforms.ToTensor(),
-             transforms.Normalize(mean=[.5], std=[.5])])
-
-    train_dataset = Subset(
-        DataClass(split='train', transform=data_transform, download=download, as_rgb=as_rgb, size=size, root=root),
-        subset_idx)
-
-    val_dataset = Subset(DataClass(split='val', transform=data_transform, download=download, as_rgb=as_rgb, size=size, root=root), np.arange(0,200))
-    test_dataset = Subset(DataClass(split='test', transform=data_transform, download=download, as_rgb=as_rgb, size=size, root=root), np.arange(0, 200))
 
     train_loader = data.DataLoader(dataset=train_dataset,
                                    batch_size=batch_size,
@@ -92,18 +73,6 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_s
     else:
         criterion = nn.CrossEntropyLoss()
 
-    """
-    if model_path is not None:
-        model.load_state_dict(torch.load(model_path, map_location=device)['net'], strict=True)
-        train_metrics = test(model, train_evaluator, train_loader_at_eval, task, criterion, device, run, output_root)
-        val_metrics = test(model, val_evaluator, val_loader, task, criterion, device, run, output_root)
-        test_metrics = test(model, test_evaluator, test_loader, task, criterion, device, run, output_root)
-
-        print('train  auc: %.5f  acc: %.5f\n' % (train_metrics[1], train_metrics[2]) + \
-              'val  auc: %.5f  acc: %.5f\n' % (val_metrics[1], val_metrics[2]) + \
-              'test  auc: %.5f  acc: %.5f\n' % (test_metrics[1], test_metrics[2]))
-    """
-
     if num_epochs == 0:
         return
 
@@ -119,12 +88,13 @@ def runTraining(subset_idx, data_flag, output_root, num_epochs, gpu_ids, batch_s
     best_auc = 0
     best_epoch = 0
     best_model = deepcopy(model)
+    train_loss = []
 
     global iteration
     iteration = 0
 
     for epoch in trange(num_epochs):
-        train_loss = train(model, train_loader, task, criterion, optimizer, device)
+        train_loss.append(train(model, train_loader, task, criterion, optimizer, device))
 
         train_metrics = test(model, train_evaluator, train_loader_at_eval, task, criterion, device)
         val_metrics = test(model, val_evaluator, val_loader, task, criterion, device)
@@ -192,8 +162,9 @@ def train(model, train_loader, task, criterion, optimizer, device):
             loss = criterion(outputs, targets)
 
         total_loss.append(loss.item())
-        # writer.add_scalar('train_loss_logs', loss.item(), iteration)
-        print('train_loss {0:.3f}, iter: {1}'.format(loss.item(), iteration))
+
+        if iteration % 10 == 0:
+            print('train_loss {0:.3f}, iter: {1}'.format(loss.item(), iteration))
         iteration += 1
 
         loss.backward()
@@ -251,7 +222,7 @@ if __name__ == '__main__':
                         help='output root, where to save models and results',
                         type=str)
     parser.add_argument('--num_epochs',
-                        default=3,
+                        default=100,
                         help='num of epochs of training, the script would only test model if set num_epochs to 0',
                         type=int)
     parser.add_argument('--size',
@@ -305,15 +276,33 @@ if __name__ == '__main__':
     root = args.root
     subset_idx = np.arange(0, 1000)
 
-    metrics = runTraining(subset_idx,
+    info = INFO[data_flag]
+    DataClass = getattr(medmnist, info['python_class'])
+
+    if resize:
+        data_transform = transforms.Compose(
+            [transforms.Resize((224, 224), interpolation=PIL.Image.NEAREST),
+             transforms.ToTensor(),
+             transforms.Normalize(mean=[.5], std=[.5])])
+    else:
+        data_transform = transforms.Compose(
+            [transforms.ToTensor(),
+             transforms.Normalize(mean=[.5], std=[.5])])
+
+    train_dataset = Subset(
+        DataClass(split='train', transform=data_transform, download=download, as_rgb=as_rgb, size=size, root=root),
+        subset_idx)
+
+    val_dataset = Subset(DataClass(split='val', transform=data_transform, download=download, as_rgb=as_rgb, size=size, root=root), np.arange(0,200))
+    test_dataset = Subset(DataClass(split='test', transform=data_transform, download=download, as_rgb=as_rgb, size=size, root=root), np.arange(0, 200))
+
+    metrics = runTraining(train_dataset,
+                          val_dataset,
+                          test_dataset,
                           data_flag,
                           output_root,
                           num_epochs,
-                          gpu_ids,
                           batch_size,
                           size,
-                          download,
                           model_flag,
-                          resize,
-                          as_rgb,
-                          root)
+                          resize)

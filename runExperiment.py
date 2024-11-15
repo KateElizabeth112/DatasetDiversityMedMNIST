@@ -38,7 +38,7 @@ def main():
                 "n_samples": n_samples,
                 "random_seed": s,
                 "n_layers": 3,
-                "n_epochs": 100,
+                "n_epochs": 60,
                 "n_workers": 0,
                 "batch_size": 100,
                 "model_name": "classifier_{}.pt".format(unique_id),

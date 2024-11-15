@@ -204,7 +204,7 @@ class ResultsProcesser:
 
 def main():
     plotter = ResultsProcesser(experiment_name="GeneralisationDiversity")
-    #plotter.plot(output="test_acc", dataset=["pneumoniamnist"], image_size=28)
+    plotter.plot(output="test_acc", dataset=["pneumoniamnist"], image_size=28)
 
     plotter.printResults(output="test_acc", image_size=28)
 

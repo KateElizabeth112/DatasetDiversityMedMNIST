@@ -27,6 +27,9 @@ data_dir = os.path.join(root_dir, "data/MedMNIST")
 params_file_path = os.path.join(code_dir, "params", args.params_file)
 loss_plot_save_path = os.path.join(code_dir, "loss.png")
 
+# define the transform to apply to the MedMNIST data
+data_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[.5], std=[.5])])
+
 # Set our tracking server uri for logging with MLFlow if we are running locally
 if args.params_file == "local":
     mlflow.set_tracking_uri(uri="http://127.0.0.1:8080")
@@ -37,10 +40,12 @@ mlflow.set_experiment("MedMNISTGeneralisation")
 from medmnist import INFO
 import medmnist
 
+
 def main():
     # open a params file if specified
     if args.params_file != "local":
-        assert os.path.exists(params_file_path), "The path {} to the params file does not exist.".format(params_file_path)
+        assert os.path.exists(params_file_path), "The path {} to the params file does not exist.".format(
+            params_file_path)
 
         f = open(params_file_path, "rb")
         params = pkl.load(f)
@@ -72,34 +77,40 @@ def main():
     diversity = params["diversity"]
     random_seed = params["random_seed"]
     n_epochs = params["n_epochs"]
+    download = False # Flag to indicate whether we should download the data
 
     assert isinstance(dataset_name, str), "Dataset name must be a string."
     assert dataset_name in ["pneumoniamnist", "chestmnist"], "The dataset name {} is not recognised."
-    assert image_size in [28, 128, 224], "Image size {} is not an option. Must be one of 28, 128 or 224".format(image_size)
+    assert image_size in [28, 128, 224], "Image size {} is not an option. Must be one of 28, 128 or 224".format(
+        image_size)
 
     print("Starting experiment with {0} dataset, image size {1}".format(dataset_name, image_size))
 
-    train_data = MedNISTDataset(data_dir, split="train", task=dataset_name, size=image_size)
-
     info = INFO[dataset_name]
     DataClass = getattr(medmnist, info['python_class'])
+
+    train_data = DataClass(split='train', transform=data_transform, download=download, as_rgb=False, size=image_size,
+                           root=data_dir)
+    val_data = DataClass(split='val', transform=data_transform, download=download, as_rgb=False, size=image_size,
+                         root=data_dir)
+    test_data = DataClass(split='test', transform=data_transform, download=download, as_rgb=False, size=image_size,
+                          root=data_dir)
+
     train_data_rgb = DataClass(split='train',
-                                  transform=transforms.Compose([transforms.ToTensor(), transforms.Normalize(mean=[.5], std=[.5])]),
-                                  download=False,
-                                  as_rgb=True,
-                                  size=image_size)
-    #valid_data = MedNISTDataset(data_dir, split="val", task="dataset_name", size=image_size)
-    #test_data = MedNISTDataset(data_dir, split="test", task="dataset_name", size=image_size)
+                               transform=data_transform,
+                               download=download,
+                               as_rgb=True,
+                               size=image_size)
+    val_data_rgb = DataClass(split='val', transform=data_transform, download=download, as_rgb=True, size=image_size,
+                         root=data_dir)
+    test_data_rgb = DataClass(split='test', transform=data_transform, download=download, as_rgb=True, size=image_size,
+                          root=data_dir)
 
     print("Finished loading data.")
-
-    if len(train_data) < n_samples * 5:
-        print("Warning: train data has {0} samples not {1}".format(len(train_data), n_samples * 5))
 
     # First randomly select a subset so that we don't have to compute a massive similarity matrix
     n_train_samples = len(train_data)
     idx_train = generateSubsetIndex(train_data, "all", min(n_samples * 5, len(train_data)), random_seed)
-
     train_data = Subset(train_data, idx_train)
 
     # keep track of the original train data indices in the new subset so we can apply the selection to a new dataset
@@ -122,18 +133,16 @@ def main():
 
     print("Training ResNet for classification.")
 
-    metrics = runTraining(idx_train_final,
+    metrics = runTraining(Subset(train_data_rgb, idx_train_final),
+                          val_data_rgb,
+                          test_data_rgb,
                           dataset_name,
                           output_dir,
                           n_epochs,
-                          '0',
                           5,
                           image_size,
-                          False,
                           'resnet18',
-                          True,
-                          True,
-                          root=data_dir)
+                          True)
 
     print("Finished experiment.")
 
