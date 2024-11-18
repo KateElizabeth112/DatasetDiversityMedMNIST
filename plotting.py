@@ -74,6 +74,9 @@ class ResultsProcesser:
             condition1 = self.results["dataset_name"] == ds
             condition2 = self.results["image_size"] == image_size
             n_samples = np.unique(self.results["n_samples"][condition1 & condition2].values)
+            #diversity_types = np.unique(self.results["diversity"][condition1 & condition2].values)
+            diversity_types = ["high", "random", "low"]
+            diversity_colours = ["r", "g", "b"]
 
             # generate some colours
             colours = colours_list[:len(n_samples)]
@@ -85,33 +88,38 @@ class ResultsProcesser:
 
                     # iterate over the number of samples in the training dataset
                     for c, ns in zip(colours, n_samples):
-                        # filter by the diversity metric, dataset name and the number of samples in training data
-                        condition1 = self.results["dataset_name"] == ds
-                        condition2 = self.results["n_samples"] == ns
-                        condition3 = self.results["image_size"] == image_size
-                        diversity = self.results[self.diversity_scores[i]][condition1 & condition2 & condition3].values
+                        for d, dc in zip(diversity_types, diversity_colours):
+                            # filter by the diversity metric, dataset name and the number of samples in training data
+                            condition1 = self.results["dataset_name"] == ds
+                            condition2 = self.results["n_samples"] == ns
+                            condition3 = self.results["image_size"] == image_size
+                            condition4 = self.results["diversity"] == d
 
-                        if output in ["test_AUC", "val_AUC", "test_acc", "val_acc"]:
-                            accuracy = self.results[output][condition1 & condition2 & condition3].values
-                        elif output == "generalisation_gap":
-                            valid_accuracy = self.results["val_AUC"][condition1 & condition2 & condition3].values
-                            test_accuracy = self.results["test_AUC"][condition1 & condition2 & condition3].values
-                            accuracy = test_accuracy - valid_accuracy / (0.5 * (test_accuracy + valid_accuracy))
-                        else:
-                            print("Metric {} not recognised".format(output))
+                            condition = condition1 & condition2 & condition3 & condition4
 
-                        # Find out if we have any Nan values in scores (due to missing data)
-                        nan_idx = np.isnan(diversity)
+                            diversity = self.results[self.diversity_scores[i]][condition].values
 
-                        # filter out nan entries
-                        diversity_nonan = diversity[np.invert(nan_idx)]
-                        accuracy_nonnan = accuracy[np.invert(nan_idx)]
+                            if output in ["test_AUC", "val_AUC", "test_acc", "val_acc"]:
+                                accuracy = self.results[output][condition].values
+                            elif output == "generalisation_gap":
+                                valid_accuracy = self.results["val_AUC"][condition].values
+                                test_accuracy = self.results["test_AUC"][condition].values
+                                accuracy = test_accuracy - valid_accuracy / (0.5 * (test_accuracy + valid_accuracy))
+                            else:
+                                print("Metric {} not recognised".format(output))
 
-                        # Check whether we have any data for this metric
-                        if diversity_nonan.shape[0] > 0:
-                            # calculate the correlation coefficient (returns an object)
-                            ax.scatter(diversity_nonan, accuracy_nonnan, color=c, label="n_samples={0}".format(ns))
-                    ax.set_xlabel(self.plot_titles[i])
+                            # Find out if we have any Nan values in scores (due to missing data)
+                            nan_idx = np.isnan(diversity)
+
+                            # filter out nan entries
+                            diversity_nonan = diversity[np.invert(nan_idx)]
+                            accuracy_nonnan = accuracy[np.invert(nan_idx)]
+
+                            # Check whether we have any data for this metric
+                            if diversity_nonan.shape[0] > 0:
+                                # calculate the correlation coefficient (returns an object)
+                                ax.scatter(diversity_nonan, accuracy_nonnan, color=dc, label="n_samples={0}".format(ns))
+                        ax.set_xlabel(self.plot_titles[i])
 
         # Turn off the last plot's axes
         ax = axes.flat[i+1]
@@ -204,9 +212,9 @@ class ResultsProcesser:
 
 def main():
     plotter = ResultsProcesser(experiment_name="GeneralisationDiversity")
-    plotter.plot(output="test_acc", dataset=["pneumoniamnist"], image_size=28)
+    plotter.plot(output="test_AUC", dataset=["pneumoniamnist"], image_size=28)
 
-    plotter.printResults(output="test_acc", image_size=28)
+    plotter.printResults(output="test_AUC", image_size=28)
 
     #plotter = ResultsProcesser(experiment_name="Generalisation_Fixed_Entropy")
     #plotter.plot(output="test_accuracy", dataset=["MNIST", "EMNIST"])

@@ -118,7 +118,12 @@ class DiversityScore:
         # get the dataset labels
         labels = np.array([self.data[i][1] for i in range(len(self.data))])
 
-        counts = np.sum(labels, axis=0)
+        if labels.shape[1] == 1:
+            counts = np.zeros((2))
+            counts[0] = np.sum(labels, axis=0)
+            counts[1] = labels.shape[0] - np.sum(labels, axis=0)
+        else:
+            counts = np.sum(labels, axis=0)
 
         # calculate entropy from distribution over categorical labels
         label_entropy = entropy(counts)
