@@ -129,6 +129,8 @@ def main():
 
     train_scores = ds_train.scoreDiversity()
 
+    train_scores["domain_gap"] = ds_train.domainGap(test_data)
+
     print("Training ResNet for classification.")
 
     metrics = runTraining(Subset(train_data_rgb, idx_train_final),
@@ -161,6 +163,7 @@ def main():
             mlflow.log_metric("{0}_random_{1}".format(s, ds), train_scores["{}_random".format(s)])
 
         mlflow.log_metric("label_entropy_{}".format(ds), train_scores["label_entropy"])
+        mlflow.log_metric("domain_gap", train_scores["domain_gap"])
 
         # log the metrics from training the classifier
         for metric in metrics.keys():

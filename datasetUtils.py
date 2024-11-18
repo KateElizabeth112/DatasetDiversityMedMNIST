@@ -23,8 +23,8 @@ def getSimilarSamples(data, n_samples, diversity=None):
         ds = DiversityScore(data, None, None, params)
 
         # get the similarity matrix for the whole dataset
-        vectors = ds.getPixelVectors()
-        sim_matrix = ds.cosineSimilarity(vectors)
+        vectors = ds.getPixelVectors(data)
+        sim_matrix = ds.cosineSimilarity(vectors, vectors)
 
         # find average similarity for each sample
         average_sim = np.mean(sim_matrix, axis=0)

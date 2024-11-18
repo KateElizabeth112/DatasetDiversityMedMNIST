@@ -26,22 +26,18 @@ class DiversityScore:
         self.indices = indices
         self.code_dir = params["code_dir"]
 
-        # set up a data loader
-        self.data_loader = torch.utils.data.DataLoader(self.data, batch_size=self.params["batch_size"],
-                                                       num_workers=self.params["n_workers"])
-
     def __len__(self):
         return self.vectors.shape[0]
 
-
-    def getPixelVectors(self):
+    def getPixelVectors(self, data):
         """
         Coverts a dataset of 2D images into an array of 1D pixel vectors
         :return:
         pixel_vectors: 2D pixel vector array
         """
-        for i, (images, labels) in enumerate(self.data_loader):
+        data_loader = torch.utils.data.DataLoader(data, batch_size=self.params["batch_size"], num_workers=self.params["n_workers"])
 
+        for i, (images, labels) in enumerate(data_loader):
             # convert to a numpy array for easier handling after detaching gradient
             images = images.numpy()
 
@@ -61,7 +57,7 @@ class DiversityScore:
 
         return pixel_vectors
 
-    def cosineSimilarity(self, vectors):
+    def cosineSimilarity(self, vectorsA, vectorsB):
         """
         Compute cosine similarity between multiple vectors. Sets a class attribute.
 
@@ -70,14 +66,14 @@ class DiversityScore:
         """
 
         # Compute dot product of vectors
-        dot_product = np.dot(vectors, vectors.T)
+        dot_product = np.dot(vectorsA, vectorsB.T)
 
         # Compute norms of vectors
-        norm = np.linalg.norm(vectors, axis=1)
-        norm = norm[:, np.newaxis]  # Convert to column vector
+        normA = np.linalg.norm(vectorsA, axis=1, keepdims=True)
+        normB = np.linalg.norm(vectorsB, axis=1, keepdims=True)
 
-        # Compute cosine similarity
-        similarity_matrix = dot_product / (norm * norm.T)
+        # Compute cosine similarity matrix
+        similarity_matrix = dot_product / (normA * normB.T)
 
         return similarity_matrix
 
@@ -88,7 +84,7 @@ class DiversityScore:
         float: The Vendi score for the dataset
         """
         if embed == "pixel":
-            vectors = self.getPixelVectors()
+            vectors = self.getPixelVectors(self.data)
         elif embed == "auto":
             encoder = BYOLEncoder(self.data_rgb, self.params)
             vectors = encoder.encode()
@@ -102,7 +98,7 @@ class DiversityScore:
             encoder = SamMedEncoder(self.data, self.params)
             vectors = encoder.retrieve(self.indices)
 
-        similarity_matrix = self.cosineSimilarity(vectors)
+        similarity_matrix = self.cosineSimilarity(vectors, vectors)
 
         score = vendiScore.score_K(similarity_matrix)
 
@@ -130,6 +126,18 @@ class DiversityScore:
 
         return label_entropy
 
+    def domainGap(self, test_data):
+        # turn training and test images into a stack of vectors
+        train_vectors = self.getPixelVectors(self.data)
+        test_vectors = self.getPixelVectors(test_data)
+
+        # Compute cosine similarity matrix between train and test vectors
+        similarity_matrix = self.cosineSimilarity(train_vectors, test_vectors)
+
+        average_similarity = np.mean(similarity_matrix)
+
+        return 1 - average_similarity
+
     def scoreDiversity(self):
         """
         Runs all diversity scoring methods, returns a dictionary of results.
@@ -138,6 +146,7 @@ class DiversityScore:
         # Store the results in a dictionary
         results = {}
         results["label_entropy"] = self.labelEntropy()
+
         for embedding in ["pixel", "auto", "inception", "sammed", "random"]:
             vs, intdiv = self.vendiScore(embed=embedding)
             results["vs_{}".format(embedding)] = vs
