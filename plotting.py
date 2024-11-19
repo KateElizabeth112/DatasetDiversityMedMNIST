@@ -40,14 +40,16 @@ class ResultsProcesser:
                 plot_titles.append(score_titles[j] + embed_titles[k])
                 diversity_scores.append("{0}_{1}_train".format(scores[j], embed[k]))
 
-        # Add number of samples and label entropy
+        # Add label entropy and domain gap
         plot_titles.append("Label Entropy")
         diversity_scores.append("label_entropy_train")
+        plot_titles.append("Domain Gap")
+        diversity_scores.append("domain_gap")
 
         self.diversity_scores = diversity_scores
         self.plot_titles = plot_titles
 
-    def plot(self, output="test_acc", dataset="", image_size=28):
+    def plot(self, output="test_acc", dataset="", image_size=28, ns=200):
         assert isinstance(dataset, list), "Please specify the dataset/s within a list"
 
         # Check that the specified dataset/s are present in the results file
@@ -59,74 +61,59 @@ class ResultsProcesser:
         # list of colours to use for plotting different datasets
         colours_list = [lred, lblu, lgrn]
 
-        # if a dataset was not specified, get a list of datasets from the results
-        if dataset == "":
-            dataset_names = list(np.unique(self.results["dataset_name"].values))
-        else:
-            dataset_names = list(dataset)
+        # check how many different sample sizes we have for this dataset and image size combo
+        condition1 = self.results["dataset_name"] == ds
+        condition2 = self.results["image_size"] == image_size
+        n_samples = np.unique(self.results["n_samples"][condition1 & condition2].values)
+        #diversity_types = np.unique(self.results["diversity"][condition1 & condition2].values)
+        diversity_types = ["high", "random", "low"]
+        diversity_colours = ["r", "g", "b"]
 
-        num_datasets = len(dataset_names)
-        colours = colours_list[:num_datasets]
+        for i in range(len(self.diversity_scores)):
+            # Check that we have this column present in the results CSV, if not, just skip
+            if self.diversity_scores[i] in self.results.columns:
+                ax = axes.flat[i]
 
-        for c, ds in zip(colours, dataset_names):
+                # iterate over the number of samples in the training dataset
 
-            # check how many different sample sizes we have for this dataset and image size combo
-            condition1 = self.results["dataset_name"] == ds
-            condition2 = self.results["image_size"] == image_size
-            n_samples = np.unique(self.results["n_samples"][condition1 & condition2].values)
-            #diversity_types = np.unique(self.results["diversity"][condition1 & condition2].values)
-            diversity_types = ["high", "random", "low"]
-            diversity_colours = ["r", "g", "b"]
+                for d, dc in zip(diversity_types, diversity_colours):
+                    # filter by the diversity metric, dataset name and the number of samples in training data
+                    condition1 = self.results["dataset_name"] == ds
+                    condition2 = self.results["n_samples"] == ns
+                    condition3 = self.results["image_size"] == image_size
+                    condition4 = self.results["diversity"] == d
 
-            # generate some colours
-            colours = colours_list[:len(n_samples)]
+                    condition = condition1 & condition2 & condition3 & condition4
 
-            for i in range(len(self.diversity_scores)):
-                # Check that we have this column present in the results CSV, if not, just skip
-                if self.diversity_scores[i] in self.results.columns:
-                    ax = axes.flat[i]
+                    diversity = self.results[self.diversity_scores[i]][condition].values
 
-                    # iterate over the number of samples in the training dataset
-                    for c, ns in zip(colours, n_samples):
-                        for d, dc in zip(diversity_types, diversity_colours):
-                            # filter by the diversity metric, dataset name and the number of samples in training data
-                            condition1 = self.results["dataset_name"] == ds
-                            condition2 = self.results["n_samples"] == ns
-                            condition3 = self.results["image_size"] == image_size
-                            condition4 = self.results["diversity"] == d
+                    if output in ["test_AUC", "val_AUC", "test_acc", "val_acc"]:
+                        accuracy = self.results[output][condition].values
+                    elif output == "generalisation_gap":
+                        valid_accuracy = self.results["val_AUC"][condition].values
+                        test_accuracy = self.results["test_AUC"][condition].values
+                        accuracy = test_accuracy - valid_accuracy / (0.5 * (test_accuracy + valid_accuracy))
+                    else:
+                        print("Metric {} not recognised".format(output))
 
-                            condition = condition1 & condition2 & condition3 & condition4
+                    # Find out if we have any Nan values in scores (due to missing data)
+                    nan_idx = np.isnan(diversity)
 
-                            diversity = self.results[self.diversity_scores[i]][condition].values
+                    # filter out nan entries
+                    diversity_nonan = diversity[np.invert(nan_idx)]
+                    accuracy_nonnan = accuracy[np.invert(nan_idx)]
 
-                            if output in ["test_AUC", "val_AUC", "test_acc", "val_acc"]:
-                                accuracy = self.results[output][condition].values
-                            elif output == "generalisation_gap":
-                                valid_accuracy = self.results["val_AUC"][condition].values
-                                test_accuracy = self.results["test_AUC"][condition].values
-                                accuracy = test_accuracy - valid_accuracy / (0.5 * (test_accuracy + valid_accuracy))
-                            else:
-                                print("Metric {} not recognised".format(output))
-
-                            # Find out if we have any Nan values in scores (due to missing data)
-                            nan_idx = np.isnan(diversity)
-
-                            # filter out nan entries
-                            diversity_nonan = diversity[np.invert(nan_idx)]
-                            accuracy_nonnan = accuracy[np.invert(nan_idx)]
-
-                            # Check whether we have any data for this metric
-                            if diversity_nonan.shape[0] > 0:
-                                # calculate the correlation coefficient (returns an object)
-                                ax.scatter(diversity_nonan, accuracy_nonnan, color=dc, label="n_samples={0}".format(ns))
-                        ax.set_xlabel(self.plot_titles[i])
+                    # Check whether we have any data for this metric
+                    if diversity_nonan.shape[0] > 0:
+                        # calculate the correlation coefficient (returns an object)
+                        ax.scatter(diversity_nonan, accuracy_nonnan, color=dc, label="n_samples={0}".format(ns))
+                ax.set_xlabel(self.plot_titles[i])
 
         # Turn off the last plot's axes
-        ax = axes.flat[i+1]
-        for c, ns in zip(colours, n_samples):
-            ax.scatter([], [], color=c, label="n_samples={0}".format(ns))
-        ax.axis("off")
-        ax.legend()
+        #ax = axes.flat[i+1]
+        #ax.scatter([], [], color=dc, label="n_samples={0}".format(ns))
+        #ax.axis("off")
+        #ax.legend()
 
         fig.text(0.015, 0.5, 'Test Set Accuracy', ha='center', va='center', rotation='vertical')
         plt.tight_layout()
@@ -160,12 +147,12 @@ class ResultsProcesser:
         else:
             print("& ", end="")
 
-    def printResults(self, output="test_acc", image_size=28):
+    def printResults(self, output="test_acc", image_size=28, ns=200):
         """
         Print a table of results in latex format and save to a text file if specified
         :return:
         """
-        assert output in ["test_acc", "test_auc", "generalisation_gap"], \
+        assert output in ["test_acc", "test_AUC", "generalisation_gap"], \
             "Please set the plotting metric to either 'test_accuracy' or 'valid_accuracy' or 'generalisation_gap'"
 
         # Get the names of the datasets present in results. We will have a separate column for each dataset
@@ -187,15 +174,15 @@ class ResultsProcesser:
                 n_samples = np.unique(self.results["n_samples"][self.results["dataset_name"] == dataset_name].values)
 
                 # iterate over the number of samples
-                for ns in n_samples:
-                    # filter the results by dataset, diversity metric and number of samples
-                    condition_1 = self.results["dataset_name"] == dataset_name
-                    condition_2 = self.results["n_samples"] == ns
-                    condition_3 = self.results["image_size"] == image_size
-                    diversity = self.results[score][condition_1 & condition_2 & condition_3]
-                    accuracy = self.results[output][condition_1 & condition_2 & condition_3]
 
-                    self.__printCorrelation__(diversity, accuracy)
+                # filter the results by dataset, diversity metric and number of samples
+                condition_1 = self.results["dataset_name"] == dataset_name
+                condition_2 = self.results["n_samples"] == ns
+                condition_3 = self.results["image_size"] == image_size
+                diversity = self.results[score][condition_1 & condition_2 & condition_3]
+                accuracy = self.results[output][condition_1 & condition_2 & condition_3]
+
+                self.__printCorrelation__(diversity, accuracy)
 
                 # Get a correlation value for all samples
                 condition_1 = self.results["dataset_name"] == dataset_name
@@ -212,9 +199,9 @@ class ResultsProcesser:
 
 def main():
     plotter = ResultsProcesser(experiment_name="GeneralisationDiversity")
-    plotter.plot(output="test_AUC", dataset=["pneumoniamnist"], image_size=28)
+    plotter.plot(output="test_AUC", dataset=["pneumoniamnist"], image_size=28, ns=50)
 
-    plotter.printResults(output="test_AUC", image_size=28)
+    plotter.printResults(output="test_AUC", image_size=28, ns=50)
 
     #plotter = ResultsProcesser(experiment_name="Generalisation_Fixed_Entropy")
     #plotter.plot(output="test_accuracy", dataset=["MNIST", "EMNIST"])

@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -l walltime=5:00:00
+#PBS -l walltime=35:00:00
 #PBS -l select=1:ncpus=15:mem=120gb
 #PBS -N sammed_encode_chestmnist_28
 
