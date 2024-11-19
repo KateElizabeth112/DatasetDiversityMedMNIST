@@ -8,6 +8,6 @@ cd ${PBS_O_WORKDIR}
 
 # Launch virtual environment
 module load anaconda3/personal
-ls
+
 # run experiments
-python storeSamMedEncodings.py -r "/rds/general/user/kc2322/home/" 50 -d "chestmnist" -i 28
+python storeSamMedEncodings.py -r "/rds/general/user/kc2322/home/" -d "chestmnist" -i 28
