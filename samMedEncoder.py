@@ -40,6 +40,7 @@ class SamMedEncoder:
         predictor = SammedPredictor(model)
 
         for k, (image, _) in enumerate(self.data_loader):
+            print("Encoding {0} {1} image {2}".format(self.dataset_name, self.image_size, k))
             image_np = np.moveaxis(image.squeeze(dim=0).numpy(), 0, 2)
             predictor.set_image(image_np)
             embedding = predictor.get_image_embedding()
