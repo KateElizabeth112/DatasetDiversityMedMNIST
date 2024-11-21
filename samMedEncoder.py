@@ -39,15 +39,18 @@ class SamMedEncoder:
         model = sam_model_registry["vit_b"](args).to(device)
         predictor = SammedPredictor(model)
 
+        # TODO delete later
+        # Start encoding from k=37720 for chestmnist since we can't compute everything in one HPC job
         for k, (image, _) in enumerate(self.data_loader):
-            print("Encoding {0} {1} image {2}".format(self.dataset_name, self.image_size, k))
-            image_np = np.moveaxis(image.squeeze(dim=0).numpy(), 0, 2)
-            predictor.set_image(image_np)
-            embedding = predictor.get_image_embedding()
+            if k > 37720:
+                print("Encoding {0} {1} image {2}".format(self.dataset_name, self.image_size, k))
+                image_np = np.moveaxis(image.squeeze(dim=0).numpy(), 0, 2)
+                predictor.set_image(image_np)
+                embedding = predictor.get_image_embedding()
 
-            f = open(os.path.join(self.representations_dir, "img_{}.pkl".format(k)), "wb")
-            pkl.dump(embedding.flatten().unsqueeze(0), f)
-            f.close()
+                f = open(os.path.join(self.representations_dir, "img_{}.pkl".format(k)), "wb")
+                pkl.dump(embedding.flatten().unsqueeze(0), f)
+                f.close()
 
     def retrieve(self, indices):
         # retrieve pre-computed embeddings based on a list of indicies
