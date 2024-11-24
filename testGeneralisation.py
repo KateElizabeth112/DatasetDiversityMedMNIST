@@ -108,7 +108,7 @@ def main():
 
     # First randomly select a subset so that we don't have to compute a massive similarity matrix
     n_train_samples = len(train_data)
-    idx_train = generateSubsetIndex(train_data, "all", min(n_samples * 5, len(train_data)), random_seed)
+    idx_train = generateSubsetIndex(train_data, "all", min(n_samples * 10, len(train_data)), random_seed)
     train_data = Subset(train_data, idx_train)
 
     # keep track of the original train data indices in the new subset so we can apply the selection to a new dataset
