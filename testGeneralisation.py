@@ -89,8 +89,8 @@ def main():
 
     train_data = DataClass(split='train', transform=data_transform, download=download, as_rgb=False, size=image_size,
                            root=data_dir)
-    val_data = DataClass(split='val', transform=data_transform, download=download, as_rgb=False, size=image_size,
-                         root=data_dir)
+    #val_data = DataClass(split='val', transform=data_transform, download=download, as_rgb=False, size=image_size,
+    #                     root=data_dir)
     test_data = DataClass(split='test', transform=data_transform, download=download, as_rgb=False, size=image_size,
                           root=data_dir)
 
@@ -98,7 +98,8 @@ def main():
                                transform=data_transform,
                                download=download,
                                as_rgb=True,
-                               size=image_size)
+                               size=image_size,
+                               root=data_dir)
     val_data_rgb = DataClass(split='val', transform=data_transform, download=download, as_rgb=True, size=image_size,
                          root=data_dir)
     test_data_rgb = DataClass(split='test', transform=data_transform, download=download, as_rgb=True, size=image_size,
