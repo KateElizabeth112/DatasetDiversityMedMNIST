@@ -23,8 +23,8 @@ image_size = args.image_size
 
 
 def main():
-    #seeds = [112, 234, 23, 453, 21, 12, 6, 2, 67, 88]
-    seeds = [453, 21, 12, 6, 2, 67, 88]
+    seeds = [112, 234, 23, 453, 21, 12, 6, 2, 67, 88]
+    #seeds = [453, 21, 12, 6, 2, 67, 88]
 
     if not(os.path.exists(params_folder)):
         os.mkdir(params_folder)
