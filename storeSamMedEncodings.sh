@@ -10,4 +10,4 @@ cd ${PBS_O_WORKDIR}
 module load anaconda3/personal
 
 # run experiments
-python storeSamMedEncodings.py -r "/rds/general/user/kc2322/home/" -d "chestmnist" -i 128
+python storeSamMedEncodings.py -r "/rds/general/user/kc2322/home/" -d "chestmnist" -i 128 -s 57400

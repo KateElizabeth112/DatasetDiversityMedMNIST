@@ -12,6 +12,7 @@ parser.add_argument("-r", "--root_dir", type=str, help="Root directory where the
                     default="/Users/katecevora/Documents/PhD")
 parser.add_argument("-d", "--dataset_name", type=str, help="Name of dataset.", default="chestmnist")
 parser.add_argument("-i", "--image_size", type=int, help="Size of the images", default=28)
+parser.add_argument("-s", "--start_idx", type=int, help="Index of the image to start encoding", default=0)
 
 args = parser.parse_args()
 
@@ -22,6 +23,7 @@ data_dir = os.path.join(root_dir, "data/MedMNIST")
 
 dataset_name = args.dataset_name
 image_size = args.image_size
+start_idx = args.start_idx
 
 info = INFO[dataset_name]
 DataClass = getattr(medmnist, info['python_class'])
@@ -37,5 +39,5 @@ params = {"code_dir": code_dir,
           "dataset_name": dataset_name,
           "image_size": image_size}
 
-encoder = SamMedEncoder(data, params)
+encoder = SamMedEncoder(data, params, start_idx)
 encoder.encode()
