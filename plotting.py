@@ -147,61 +147,108 @@ class ResultsProcesser:
         else:
             print("& ", end="")
 
-    def printResults(self, output="test_acc", image_size=28, ns=200):
+    def printResults(self, output="test_AUC", dataset_name="pneumoniamnist", image_sizes=[28]):
         """
         Print a table of results in latex format and save to a text file if specified
         :return:
         """
-        assert output in ["test_acc", "test_AUC", "generalisation_gap"], \
-            "Please set the plotting metric to either 'test_accuracy' or 'valid_accuracy' or 'generalisation_gap'"
+        assert output in ["test_acc", "test_AUC"], \
+            "Please set the plotting metric to either 'test_accuracy' or 'valid_accuracy'"
 
-        # Get the names of the datasets present in results. We will have a separate column for each dataset
-        dataset_names = np.unique(self.results["dataset_name"].values)
+        diversity_metrics = ["vs", "intdiv"]
+        encoders = ["pixel", "auto", "inception", "random", "sammed"]
+        additional_metrics = ["label_entropy_train", "domain_gap"]
 
         # print the first few lines of the latex table
-        print(r"\begin{tabular}{p{3.4cm}|p{0.7cm}p{0.7cm}p{0.7cm}|p{0.7cm}|p{0.7cm}p{0.7cm}p{0.7cm}|p{0.7cm}|p{0.7cm}p{0.7cm}p{0.7cm}|p{0.7cm}|}")
+
         print(r" &  \multicolumn{4}{|c|}{MNIST} & \multicolumn{4}{|c|}{EMNIST} &\multicolumn{4}{|c|}{PneuMNIST}\\")
         print(r"\hline")
         print(r"No. Samples & 500 & 1000 & 2000 & all & 500 & 1000 & 2000 & all & 200 & 500 & 1000 & all \\")
         print(r"\hline")
 
+        # Find out the number of samples for each image size and print the beginning of the table
+        n_samples_per_image_size = []
+        total_experiments_counter = 0
+        print(r"\begin{tabular}{p{3cm}|p{3cm}|", end="")
+        for image_size in image_sizes:
+            condition1 = self.results["dataset_name"] == dataset_name
+            condition2 = self.results["image_size"] == image_size
+            n_samples = np.unique(self.results["n_samples"][condition1 & condition2].values)
+            total_experiments_counter += n_samples.shape[0]
+            n_samples_per_image_size.append(n_samples)
+            for ns in n_samples:
+                print(r"p{0.7cm}", end="")
+            print("|", end="")
+        print(r"}")
+
+        print(r" &  & ", end="")
+        for i, image_size in enumerate(image_sizes):
+            n_samples = n_samples_per_image_size[i]
+            print(r"\multicolumn{" + str(n_samples.shape[0]) + r"}{|c|}{Image Size = " + str(image_size) + "}", end="")
+        print(r"\\")
+
         # iterate over the diversity scoring metrics
-        for score, score_name in zip(self.diversity_scores, self.plot_titles):
-            print(score_name, end="")
-            # iterate over the datasets
-            for dataset_name in dataset_names:
+        #for score, score_name in zip(self.diversity_scores, self.plot_titles):
+        for metric in diversity_metrics:
+            for encoder in encoders:
+                print("{0} & {1} ".format(metric, encoder), end="")
+                score = "{0}_{1}_train".format(metric, encoder)
+                for image_size in image_sizes:
+                    # find the range of dataset sizes used for this dataset
+                    condition1 = self.results["dataset_name"] == dataset_name
+                    condition2 = self.results["image_size"] == image_size
+                    n_samples = np.unique(self.results["n_samples"][condition1 & condition2].values)
+
+                    # cycle over the number of samples in the training dataset
+                    for ns in n_samples:
+                        # get the scores for the diversity metric
+                        condition1 = self.results["dataset_name"] == dataset_name
+                        condition2 = self.results["image_size"] == image_size
+                        condition3 = self.results["n_samples"] == ns
+
+                        diversity = self.results[score][condition1 & condition2 & condition3]
+                        accuracy = self.results[output][condition1 & condition2 & condition3]
+
+                        self.__printCorrelation__(diversity, accuracy)
+
+                print("\\\\")
+            print("\hline")
+
+        for score in additional_metrics:
+            print("{0} & ".format(score), end="")
+
+            for image_size in image_sizes:
                 # find the range of dataset sizes used for this dataset
-                n_samples = np.unique(self.results["n_samples"][self.results["dataset_name"] == dataset_name].values)
+                condition1 = self.results["dataset_name"] == dataset_name
+                condition2 = self.results["image_size"] == image_size
+                n_samples = np.unique(self.results["n_samples"][condition1 & condition2].values)
 
-                # iterate over the number of samples
+                # cycle over the number of samples in the training dataset
+                for ns in n_samples:
+                    # get the scores for the diversity metric
+                    condition1 = self.results["dataset_name"] == dataset_name
+                    condition2 = self.results["image_size"] == image_size
+                    condition3 = self.results["n_samples"] == ns
 
-                # filter the results by dataset, diversity metric and number of samples
-                condition_1 = self.results["dataset_name"] == dataset_name
-                condition_2 = self.results["n_samples"] == ns
-                condition_3 = self.results["image_size"] == image_size
-                diversity = self.results[score][condition_1 & condition_2 & condition_3]
-                accuracy = self.results[output][condition_1 & condition_2 & condition_3]
+                    diversity = self.results[score][condition1 & condition2 & condition3]
+                    accuracy = self.results[output][condition1 & condition2 & condition3]
 
-                self.__printCorrelation__(diversity, accuracy)
+                    try:
+                        self.__printCorrelation__(diversity, accuracy)
+                    except:
+                        print(" & ", end="")
 
-                # Get a correlation value for all samples
-                condition_1 = self.results["dataset_name"] == dataset_name
-                diversity = self.results[score][condition_1]
-                accuracy = self.results[output][condition_1]
-
-                self.__printCorrelation__(diversity, accuracy)
-
-                print("", end="")
             print("\\\\")
 
-        # print the last part of the table in latex
-        print(r"\end{tabular}")
+
+
 
 def main():
     plotter = ResultsProcesser(experiment_name="GeneralisationDiversity")
-    plotter.plot(output="test_AUC", dataset=["pneumoniamnist"], image_size=28, ns=50)
+    #plotter.plot(output="test_AUC", dataset=["chestmnist"], image_size=28, ns=50)
 
-    plotter.printResults(output="test_AUC", image_size=28, ns=50)
+    plotter.printResults( output="test_AUC", dataset_name="pneumoniamnist", image_sizes=[28, 128])
+    #plotter.printResults(output="test_AUC", dataset_name="chestmnist", image_sizes=[28])
 
     #plotter = ResultsProcesser(experiment_name="Generalisation_Fixed_Entropy")
     #plotter.plot(output="test_accuracy", dataset=["MNIST", "EMNIST"])

@@ -11,6 +11,7 @@ from trainResNet import runTraining
 import torchvision.transforms as transforms
 import medmnist
 from medmnist import INFO
+import random
 
 # Set up the argument parser
 parser = argparse.ArgumentParser(description="Calculate the generalisation ability and diversity scores for a dataset")
@@ -104,6 +105,17 @@ def main():
                          root=data_dir)
     test_data_rgb = DataClass(split='test', transform=data_transform, download=download, as_rgb=True, size=image_size,
                           root=data_dir)
+
+    # if the dataset is chestmnist, select a subset of the training and validation data since chestmnist is very large
+    if dataset_name == "chestmnist":
+        random.seed(222)
+
+        test_data_idx = random.sample(range(0, len(test_data)), 1000)
+        test_data = Subset(test_data, test_data_idx)
+        test_data_rgb = Subset(test_data_rgb, test_data_idx)
+
+        val_data_idx = random.sample(range(0, len(val_data_rgb)), 1000)
+        val_data_rgb = Subset(val_data_rgb, val_data_idx)
 
     print("Finished loading data.")
 

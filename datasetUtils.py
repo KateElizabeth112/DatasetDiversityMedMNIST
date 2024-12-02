@@ -100,6 +100,7 @@ def generateSubsetIndex(data, category, n_samples, random_seed, train=True):
     #data = datasets.MNIST(root=dataset_root, train=train, download=False, transform=transforms.ToTensor()),
 
     if category == "all":
+        random.seed(random_seed)
         subset_idx = np.array(random.sample(range(0, len(data)), n_samples))
 
     else:
