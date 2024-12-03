@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -l walltime=48:00:00
 #PBS -l select=1:ncpus=15:mem=80gb:ngpus=1:gpu_type=RTX6000
-#PBS -N chestmnist_50_1ß28
+#PBS -N chestmnist_50_128
 
 # bash script to run generalisation experiments on HPC
 cd ${PBS_O_WORKDIR}
