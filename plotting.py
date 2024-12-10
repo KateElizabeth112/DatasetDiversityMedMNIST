@@ -147,12 +147,12 @@ class ResultsProcesser:
         else:
             print("& ", end="")
 
-    def printResults(self, output="test_AUC", dataset_name="pneumoniamnist", image_sizes=[28]):
+    def printCorrelation(self, output="test_AUC", dataset_name="pneumoniamnist", image_sizes=[28]):
         """
         Print a table of results in latex format and save to a text file if specified
         :return:
         """
-        assert output in ["test_acc", "test_AUC"], \
+        assert output in ["test_acc", "test_AUC", "gap"], \
             "Please set the plotting metric to either 'test_accuracy' or 'valid_accuracy'"
 
         diversity_metrics = ["vs", "intdiv"]
@@ -160,16 +160,9 @@ class ResultsProcesser:
         additional_metrics = ["label_entropy_train", "domain_gap"]
 
         # print the first few lines of the latex table
-
-        print(r" &  \multicolumn{4}{|c|}{MNIST} & \multicolumn{4}{|c|}{EMNIST} &\multicolumn{4}{|c|}{PneuMNIST}\\")
-        print(r"\hline")
-        print(r"No. Samples & 500 & 1000 & 2000 & all & 500 & 1000 & 2000 & all & 200 & 500 & 1000 & all \\")
-        print(r"\hline")
-
-        # Find out the number of samples for each image size and print the beginning of the table
         n_samples_per_image_size = []
         total_experiments_counter = 0
-        print(r"\begin{tabular}{p{3cm}|p{3cm}|", end="")
+        print(r"\begin{tabular}{|p{2.5cm}|p{2cm}|", end="")
         for image_size in image_sizes:
             condition1 = self.results["dataset_name"] == dataset_name
             condition2 = self.results["image_size"] == image_size
@@ -177,15 +170,26 @@ class ResultsProcesser:
             total_experiments_counter += n_samples.shape[0]
             n_samples_per_image_size.append(n_samples)
             for ns in n_samples:
-                print(r"p{0.7cm}", end="")
+                print(r"p{1.2cm}", end="")
             print("|", end="")
         print(r"}")
 
-        print(r" &  & ", end="")
+        print(r"\hline")
+
+        print(r" &  ", end="")
         for i, image_size in enumerate(image_sizes):
             n_samples = n_samples_per_image_size[i]
-            print(r"\multicolumn{" + str(n_samples.shape[0]) + r"}{|c|}{Image Size = " + str(image_size) + "}", end="")
+            print(r"& \multicolumn{" + str(n_samples.shape[0]) + r"}{|c|}{Image Size = " + str(image_size) + "}", end="")
         print(r"\\")
+
+        print(r"Metric & Encoder ", end="")
+        for i, image_size in enumerate(image_sizes):
+            for n in n_samples_per_image_size[i]:
+                print(r" & $N_s$=" + str(n), end="")
+        print(r" \\")
+
+
+        print(r"\hline")
 
         # iterate over the diversity scoring metrics
         #for score, score_name in zip(self.diversity_scores, self.plot_titles):
@@ -207,7 +211,11 @@ class ResultsProcesser:
                         condition3 = self.results["n_samples"] == ns
 
                         diversity = self.results[score][condition1 & condition2 & condition3]
-                        accuracy = self.results[output][condition1 & condition2 & condition3]
+                        if output == "gap":
+                            accuracy = self.results["val_acc"][condition1 & condition2 & condition3] - \
+                                       self.results["test_acc"][condition1 & condition2 & condition3]
+                        else:
+                            accuracy = self.results[output][condition1 & condition2 & condition3]
 
                         self.__printCorrelation__(diversity, accuracy)
 
@@ -215,7 +223,7 @@ class ResultsProcesser:
             print("\hline")
 
         for score in additional_metrics:
-            print("{0} & ".format(score), end="")
+            print("{0} & n/a ".format(score), end="")
 
             for image_size in image_sizes:
                 # find the range of dataset sizes used for this dataset
@@ -231,7 +239,11 @@ class ResultsProcesser:
                     condition3 = self.results["n_samples"] == ns
 
                     diversity = self.results[score][condition1 & condition2 & condition3]
-                    accuracy = self.results[output][condition1 & condition2 & condition3]
+                    if output == "gap":
+                        accuracy = self.results["val_acc"][condition1 & condition2 & condition3] - \
+                                   self.results["test_acc"][condition1 & condition2 & condition3]
+                    else:
+                        accuracy = self.results[output][condition1 & condition2 & condition3]
 
                     try:
                         self.__printCorrelation__(diversity, accuracy)
@@ -240,18 +252,57 @@ class ResultsProcesser:
 
             print("\\\\")
 
+        print(r"\hline")
+        print(r"\end{tabular}")
 
+    def printPeformance(self, output="test_AUC", dataset_names=["pneumoniamnist", "chestmnist"], image_sizes=[28, 128], ns=[50, 200, 500]):
+        # print latex for the first few lines of the table
+        print(r"\begin{tabular}{|p{2.5cm}|", end="")
+        for image_size in image_sizes:
+            for n in ns:
+                print(r"p{1.7cm}|", end="")
+        print(r"}")
+
+        print(r"\hline")
+
+        for image_size in image_sizes:
+            print(r" & \multicolumn{" + str(len(ns)) + r"}{|c|}{Image Size = " + str(image_size) + "}", end="")
+        print(r" \\")
+
+        print(r"\hline")
+
+        print("Dataset", end="")
+        for image_size in image_sizes:
+            for n in ns:
+                print(r" & $N_s$=" + str(n), end="")
+        print(r" \\")
+
+        print(r"\hline")
+
+        for dataset_name in dataset_names:
+            print("{}".format(dataset_name), end="")
+            for image_size in image_sizes:
+                for n in ns:
+                    condition1 = self.results["dataset_name"] == dataset_name
+                    condition2 = self.results["image_size"] == image_size
+                    condition3 = self.results["n_samples"] == n
+
+                    result = self.results[output][condition1 & condition2 & condition3].values
+
+                    print(" & {0:.2f} ({1:.2f})".format(np.nanmean(result), np.nanstd(result)), end="")
+            print(r" \\")
+        print(r"\hline")
+        print(r"\end{tabular}")
 
 
 def main():
     plotter = ResultsProcesser(experiment_name="GeneralisationDiversity")
-    #plotter.plot(output="test_AUC", dataset=["chestmnist"], image_size=28, ns=50)
 
-    plotter.printResults( output="test_AUC", dataset_name="pneumoniamnist", image_sizes=[28, 128])
-    #plotter.printResults(output="test_AUC", dataset_name="chestmnist", image_sizes=[28])
+    #plotter.printCorrelation( output="test_acc", dataset_name="chestmnist", image_sizes=[28, 128])
 
-    #plotter = ResultsProcesser(experiment_name="Generalisation_Fixed_Entropy")
-    #plotter.plot(output="test_accuracy", dataset=["MNIST", "EMNIST"])
+    #plotter.printPeformance(output="test_AUC", dataset_names=["pneumoniamnist", "chestmnist"], image_sizes=[28, 128], ns=[50, 200, 500])
+
+    plotter.plot(output="test_AUC", dataset=["pneumoniamnist"], image_size=28, ns=200)
 
 
 if __name__ == "__main__":
