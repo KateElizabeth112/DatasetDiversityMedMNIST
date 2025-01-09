@@ -10,7 +10,7 @@ import torchvision.transforms as transforms
 parser = argparse.ArgumentParser(description="Precompute and store SAMMed Encodings for a dataset")
 parser.add_argument("-r", "--root_dir", type=str, help="Root directory where the code and data are located",
                     default="/Users/katecevora/Documents/PhD")
-parser.add_argument("-d", "--dataset_name", type=str, help="Name of dataset.", default="chestmnist")
+parser.add_argument("-d", "--dataset_name", type=str, help="Name of dataset.", default="breastmnist")
 parser.add_argument("-i", "--image_size", type=int, help="Size of the images", default=28)
 parser.add_argument("-s", "--start_idx", type=int, help="Index of the image to start encoding", default=0)
 
@@ -33,11 +33,11 @@ data_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize
 
 data = DataClass(split='train', transform=data_transform, download=False, as_rgb=False, size=image_size, root=data_dir)
 
-print(len(data))
 
 params = {"code_dir": code_dir,
           "dataset_name": dataset_name,
           "image_size": image_size}
+
 
 encoder = SamMedEncoder(data, params, start_idx)
 encoder.encode()

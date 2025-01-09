@@ -13,7 +13,7 @@ import os
 
 
 class SamMedEncoder:
-    def __init__(self, data, params):
+    def __init__(self, data, params, start_idx):
         # check that the vectors parameter is a numpy array with two dimensions
         assert isinstance(params, dict), "params should be a dictionary"
         assert isinstance(data, Dataset), "train_data is not an instance of Dataset"
