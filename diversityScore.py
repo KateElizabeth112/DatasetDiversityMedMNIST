@@ -95,7 +95,7 @@ class DiversityScore:
             data = [im.fromarray(self.data[i][0].squeeze().numpy()) for i in range(len(self.data))]
             vectors = vendiScore.getInceptionEmbeddings(data, pretrained=False)
         elif embed == "sammed":
-            encoder = SamMedEncoder(self.data, self.params)
+            encoder = SamMedEncoder(self.data, self.params, 0)
             vectors = encoder.retrieve(self.indices)
 
         similarity_matrix = self.cosineSimilarity(vectors, vectors)
