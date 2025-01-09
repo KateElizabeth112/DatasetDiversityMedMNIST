@@ -60,7 +60,7 @@ def main():
             "n_workers": 0,
             "batch_size": 20,
             "model_name": "classifier_{}.pt".format(unique_id),
-            "dataset_name": "pneumoniamnist",
+            "dataset_name": "breastmnist",
             "diversity": "high",
             "image_size": 28,
             "code_dir": code_dir
@@ -76,10 +76,9 @@ def main():
     diversity = params["diversity"]
     random_seed = params["random_seed"]
     n_epochs = params["n_epochs"]
-    download = False # Flag to indicate whether we should download the data
 
     assert isinstance(dataset_name, str), "Dataset name must be a string."
-    assert dataset_name in ["pneumoniamnist", "chestmnist"], "The dataset name {} is not recognised."
+    assert dataset_name in ["pneumoniamnist", "chestmnist", "breastmnist"], "The dataset name {} is not recognised."
     assert image_size in [28, 128, 224], "Image size {} is not an option. Must be one of 28, 128 or 224".format(
         image_size)
 
@@ -87,6 +86,18 @@ def main():
 
     info = INFO[dataset_name]
     DataClass = getattr(medmnist, info['python_class'])
+
+    # figure out what the data file is called
+    if image_size == 28:
+        data_file = f"{dataset_name}.npz"
+    else:
+        data_file = f"{dataset_name}_{image_size}.npz"
+
+    # check whether we need to download the data
+    if os.path.exists(os.path.join(data_dir, data_file)):
+        download = False
+    else:
+        download = True
 
     train_data = DataClass(split='train', transform=data_transform, download=download, as_rgb=False, size=image_size,
                            root=data_dir)
