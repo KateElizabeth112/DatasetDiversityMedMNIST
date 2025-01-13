@@ -1,5 +1,5 @@
 import torch
-from byol_pytorch import BYOL, BYOLTrainer
+from byol_pytorch import BYOL
 from torchvision import models
 
 
