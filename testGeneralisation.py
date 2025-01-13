@@ -60,9 +60,9 @@ def main():
             "n_workers": 0,
             "batch_size": 20,
             "model_name": "classifier_{}.pt".format(unique_id),
-            "dataset_name": "breastmnist",
+            "dataset_name": "octmnist",
             "diversity": "high",
-            "image_size": 28,
+            "image_size": 128,
             "code_dir": code_dir
         }
 
@@ -78,7 +78,7 @@ def main():
     n_epochs = params["n_epochs"]
 
     assert isinstance(dataset_name, str), "Dataset name must be a string."
-    assert dataset_name in ["pneumoniamnist", "chestmnist", "breastmnist"], "The dataset name {} is not recognised."
+    assert dataset_name in ["pneumoniamnist", "chestmnist", "breastmnist", "octmnist"], "The dataset name {} is not recognised."
     assert image_size in [28, 128, 224], "Image size {} is not an option. Must be one of 28, 128 or 224".format(
         image_size)
 
@@ -117,8 +117,8 @@ def main():
     test_data_rgb = DataClass(split='test', transform=data_transform, download=download, as_rgb=True, size=image_size,
                           root=data_dir)
 
-    # if the dataset is chestmnist, select a subset of the training and validation data since chestmnist is very large
-    if dataset_name == "chestmnist":
+    # if the dataset is chestmnist or octmnist, select a subset of the training and validation data since chestmnist is very large
+    if dataset_name == "chestmnist" or dataset_name == "octmnist":
         random.seed(222)
 
         test_data_idx = random.sample(range(0, len(test_data)), 1000)
@@ -144,10 +144,16 @@ def main():
     subset_idx = generateSubsetIndexDiverse(train_data, "all", n_samples, diversity=diversity)
     idx_train_final = idx_train_mod[subset_idx]
 
-    print("Finished sampling data. {} samples".format(idx_train_final.shape[0]))
+    print(f"Finished sampling data. {idx_train_final.shape[0]} samples")
 
+    # DEBUG
+    print(random_seed)
+    print(diversity)
+    print(idx_train_final)
+
+    """
     print("Scoring data for diversity")
-
+    
     # diversity score all datasets
     ds_train = DiversityScore(Subset(train_data, subset_idx), Subset(train_data_rgb, idx_train_final), np.array(idx_train_final), params)
 
@@ -194,7 +200,7 @@ def main():
             mlflow.log_metric(metric, metrics[metric])
 
     print("Finished mlflow logging.")
-
+    """
 
 if __name__ == "__main__":
     main()

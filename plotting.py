@@ -302,7 +302,7 @@ def main():
 
     #plotter.printPeformance(output="test_AUC", dataset_names=["pneumoniamnist", "chestmnist"], image_sizes=[28, 128], ns=[50, 200, 500])
 
-    plotter.plot(output="test_AUC", dataset=["pneumoniamnist"], image_size=28, ns=200)
+    plotter.plot(output="val_AUC", dataset=["breastmnist"], image_size=28, ns=200)
 
 
 if __name__ == "__main__":
