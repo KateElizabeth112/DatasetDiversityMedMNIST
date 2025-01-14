@@ -5,7 +5,7 @@ import os
 from torch.utils.data import Subset
 from diversityScore import DiversityScore
 import pickle as pkl
-from datasetUtils import generateSubsetIndex, generateSubsetIndexDiverse, RotationTransform
+from datasetUtils import generateSubsetIndex, generateSubsetIndexDiverse
 import numpy as np
 from trainResNet import runTraining
 import torchvision.transforms as transforms
@@ -60,9 +60,9 @@ def main():
             "n_workers": 0,
             "batch_size": 20,
             "model_name": "classifier_{}.pt".format(unique_id),
-            "dataset_name": "octmnist",
+            "dataset_name": "breastmnist",
             "diversity": "high",
-            "image_size": 128,
+            "image_size": 28,
             "code_dir": code_dir
         }
 
@@ -132,24 +132,26 @@ def main():
 
     # First randomly select a subset so that we don't have to compute a massive similarity matrix
     n_train_samples = len(train_data)
-    idx_train = generateSubsetIndex(train_data, "all", min(n_samples * 10, len(train_data)), random_seed)
-    train_data = Subset(train_data, idx_train)
+    idx_random_subset = generateSubsetIndex(train_data, "all", min(n_samples * 10, len(train_data)), random_seed)
+    train_data_random_subset = Subset(train_data, idx_random_subset)
 
     # keep track of the original train data indices in the new subset so we can apply the selection to a new dataset
     # in one go
-    idx_train_orig = np.arange(0, n_train_samples)
-    idx_train_mod = idx_train_orig[idx_train]
+    idx_random_subset_orig = np.arange(0, n_train_samples)[idx_random_subset]
 
     # then choose maximally or minimally diverse samples from the training subset
-    subset_idx = generateSubsetIndexDiverse(train_data, "all", n_samples, diversity=diversity)
-    idx_train_final = idx_train_mod[subset_idx]
+    idx_diverse_subset = generateSubsetIndexDiverse(train_data_random_subset, "all", n_samples, diversity=diversity)
 
-    print(f"Finished sampling data. {idx_train_final.shape[0]} samples")
+    # Find the indices of the diverse subset in the context of the original training data indices
+    idx_diverse_subset_orig = idx_random_subset_orig[idx_diverse_subset]
+
+    print(f"Finished sampling data. {idx_diverse_subset_orig.shape[0]} samples")
 
     # DEBUG
     print(random_seed)
     print(diversity)
-    print(idx_train_final)
+    print(idx_diverse_subset_orig)
+    print(idx_diverse_subset)
 
     """
     print("Scoring data for diversity")

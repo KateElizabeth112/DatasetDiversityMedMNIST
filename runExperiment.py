@@ -30,7 +30,8 @@ def main():
         os.mkdir(params_folder)
 
     for s in seeds:
-        for diversity in ["high", "low", "random"]:
+        #for diversity in ["high", "low", "random"]:
+        for diversity in ["high"]:
 
             # generate a unique ID for the classifier model
             unique_id = ''.join(random.choices('0123456789', k=6))
