@@ -132,7 +132,7 @@ def main():
 
     # First randomly select a subset so that we don't have to compute a massive similarity matrix
     n_train_samples = len(train_data)
-    idx_random_subset = generateSubsetIndex(train_data, "all", min(n_samples * 10, len(train_data)), random_seed)
+    idx_random_subset = generateSubsetIndex(train_data, "all", min(n_samples * 10, int(len(train_data) * 0.7)), random_seed)
     train_data_random_subset = Subset(train_data, idx_random_subset)
 
     # keep track of the original train data indices in the new subset so we can apply the selection to a new dataset
@@ -147,17 +147,10 @@ def main():
 
     print(f"Finished sampling data. {idx_diverse_subset_orig.shape[0]} samples")
 
-    # DEBUG
-    print(random_seed)
-    print(diversity)
-    print(idx_diverse_subset_orig)
-    print(idx_diverse_subset)
-
-    """
     print("Scoring data for diversity")
     
     # diversity score all datasets
-    ds_train = DiversityScore(Subset(train_data, subset_idx), Subset(train_data_rgb, idx_train_final), np.array(idx_train_final), params)
+    ds_train = DiversityScore(Subset(train_data, idx_diverse_subset), Subset(train_data_rgb, idx_diverse_subset_orig), np.array(idx_random_subset_orig), params)
 
     train_scores = ds_train.scoreDiversity()
 
@@ -165,7 +158,7 @@ def main():
 
     print("Training ResNet for classification.")
 
-    metrics = runTraining(Subset(train_data_rgb, idx_train_final),
+    metrics = runTraining(Subset(train_data_rgb, idx_diverse_subset_orig),
                           val_data_rgb,
                           test_data_rgb,
                           dataset_name,
@@ -185,16 +178,16 @@ def main():
         mlflow.log_params(params)
 
         # Log the diversity metrics for the training data
-        ds = "train"
+        split = "train"
 
-        for s in ["vs", "intdiv"]:
-            mlflow.log_metric("{0}_pixel_{1}".format(s, ds), train_scores["{}_pixel".format(s)])
-            mlflow.log_metric("{0}_auto_{1}".format(s, ds), train_scores["{}_auto".format(s)])
-            mlflow.log_metric("{0}_inception_{1}".format(s, ds), train_scores["{}_inception".format(s)])
-            mlflow.log_metric("{0}_sammed_{1}".format(s, ds), train_scores["{}_sammed".format(s)])
-            mlflow.log_metric("{0}_random_{1}".format(s, ds), train_scores["{}_random".format(s)])
+        for score in ["vs", "intdiv"]:
+            mlflow.log_metric(f"{score}_pixel_{split}", train_scores[f"{score}_pixel"])
+            mlflow.log_metric(f"{score}_auto_{split}", train_scores[f"{score}_auto"])
+            mlflow.log_metric(f"{score}_inception_{split}", train_scores[f"{score}_inception"])
+            mlflow.log_metric(f"{score}_sammed_{split}", train_scores[f"{score}_sammed"])
+            mlflow.log_metric(f"{score}_random_{split}", train_scores[f"{score}_random"])
 
-        mlflow.log_metric("label_entropy_{}".format(ds), train_scores["label_entropy"])
+        mlflow.log_metric(f"label_entropy_{split}", train_scores["label_entropy"])
         mlflow.log_metric("domain_gap", train_scores["domain_gap"])
 
         # log the metrics from training the classifier
@@ -202,7 +195,7 @@ def main():
             mlflow.log_metric(metric, metrics[metric])
 
     print("Finished mlflow logging.")
-    """
+
 
 if __name__ == "__main__":
     main()

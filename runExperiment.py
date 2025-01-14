@@ -8,7 +8,7 @@ import pickle as pkl
 parser = argparse.ArgumentParser(description="Run experiments to determine the relationship between dataset diversity and generalisation performance")
 parser.add_argument("-r", "--root_dir", type=str, help="Root directory where the code and data are located", default="/Users/katecevora/Documents/PhD")
 parser.add_argument("-n", "--num_samples", type=int, help="Number of dataset samples per category to use", default=200)
-parser.add_argument("-d", "--dataset", type=str, help="Dataset which we will use to run experiments", default="pneumoniamnist")
+parser.add_argument("-d", "--dataset", type=str, help="Dataset which we will use to run experiments", default="breastmnist")
 parser.add_argument("-i", "--image_size", type=int, help="Image size", default=28)
 
 args = parser.parse_args()
@@ -24,14 +24,12 @@ image_size = args.image_size
 
 def main():
     seeds = [112, 234, 23, 453, 21, 12, 6, 2, 67, 88]
-    #seeds = [453, 21, 12, 6, 2, 67, 88]
 
     if not(os.path.exists(params_folder)):
         os.mkdir(params_folder)
 
     for s in seeds:
-        #for diversity in ["high", "low", "random"]:
-        for diversity in ["high"]:
+        for diversity in ["high", "low", "random"]:
 
             # generate a unique ID for the classifier model
             unique_id = ''.join(random.choices('0123456789', k=6))
