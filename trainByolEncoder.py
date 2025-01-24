@@ -51,7 +51,7 @@ data_transform = transforms.Compose(
     [transforms.ToTensor(),
      transforms.Normalize(mean=[.5], std=[.5])])
 
-train_dataset = DataClass(split='train', transform=data_transform, download=True, as_rgb=True, size=image_size)
+train_dataset = DataClass(split='train', transform=data_transform, download=False, as_rgb=True, size=image_size, root=data_dir)
 ns = len(train_dataset)
 
 if (dataset == "chestmnist") or (dataset == "octmnist"):

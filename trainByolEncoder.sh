@@ -1,7 +1,6 @@
 #!/bin/bash
 #PBS -l walltime=71:00:00
 #PBS -l select=1:ncpus=15:mem=120gb
-#PBS -N byol_encode_octmnist_128
 
 cd ${PBS_O_WORKDIR}
 
