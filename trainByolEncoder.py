@@ -56,7 +56,7 @@ ns = len(train_dataset)
 
 if (dataset == "chestmnist") or (dataset == "octmnist"):
     print("sampling")
-    data_loader = torch.utils.data.DataLoader(Subset(train_dataset, np.random.choice(ns, 10000)), batch_size=batch_size)
+    data_loader = torch.utils.data.DataLoader(Subset(train_dataset, np.random.choice(ns, 6000)), batch_size=batch_size)
 else:
     data_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
 
