@@ -77,7 +77,7 @@ for epoch in range(n_epochs):
 
     loss_record.append(loss_sum / len(data_loader.dataset))
 
-torch.save(learner.state_dict(), os.path.join(byol_dir, model_name))
+    torch.save(learner.state_dict(), os.path.join(byol_dir, f"{epoch}_{model_name}"))
 
 plt.clf()
 plt.plot(epochs, loss_record)
